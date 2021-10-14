@@ -1,0 +1,13 @@
+{
+  "Author": "wozaiha",
+  "Name": "CEHelper",
+  "Punchline": "提前亿点点显示BZY的CE",
+  "Description": "/cehelper 显示设置界面",
+  "InternalName": "CEHelper",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "CE",
+    "BZY",
+    "goats"
+  ]
+}
