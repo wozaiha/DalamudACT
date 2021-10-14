@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using CEHelper.Util;
 using Dalamud.Game.ClientState.Fates;
 using Dalamud.Game.Network;
@@ -19,7 +20,8 @@ namespace CEHelper
 
         private bool Visible;
         private CEHelper _plugin;
-        
+        private Dictionary<uint, Vector2> fateRotation = new();
+
         private static unsafe ref float HRotation => ref *(float*)(Marshal.ReadIntPtr(
             DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? 45 33 C0 33 D2 C6 40 09 01")) + 0x130);
 
@@ -30,6 +32,7 @@ namespace CEHelper
             DalamudApi.PluginInterface.UiBuilder.Draw += Draw;
             DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
             
+            
         }
 
         public void Dispose()
@@ -38,7 +41,16 @@ namespace CEHelper
             DalamudApi.PluginInterface.UiBuilder.OpenConfigUi -= DrawConfigUI;
         }
 
-        
+
+        private async void UpdateRotate()
+        {
+            foreach (var fate in DalamudApi.FateTable)
+            {
+                var rot = await Task.Run(() => (fate.Position - DalamudApi.ClientState.LocalPlayer.Position).ToVector2().Normalize().Rotate(-HRotation));
+                if (fateRotation.ContainsKey(fate.FateId)) fateRotation[fate.FateId] = rot;
+                else fateRotation.Add(fate.FateId,rot);
+            }
+        }
 
         public void DrawConfigUI()
         {
@@ -131,7 +143,7 @@ namespace CEHelper
             //	return (float)(41.0 / (double)num1 * (((double)num2 + 1024.0) / 2048.0) + 1.0);
             //}
 
-
+            UpdateRotate();
             foreach (var fate in DalamudApi.FateTable)
             {
                 
@@ -163,8 +175,7 @@ namespace CEHelper
                                  new Vector2(ImGui.GetTextLineHeight() + 5, ImGui.GetTextLineHeight());
                     ImGui.GetWindowDrawList().DrawArrow(arrpos, ImGui.GetTextLineHeightWithSpacing() * 0.500f,
                         ImGui.ColorConvertFloat4ToU32(color),
-                        (fatePos - DalamudApi.ClientState.LocalPlayer.Position).ToVector2().Normalize()
-                        .Rotate(-HRotation), 5);
+                        fateRotation.ContainsKey(fate.FateId)? fateRotation[fate.FateId]:Vector2.Zero, 5);
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetTextLineHeight() +
                                         ImGui.GetTextLineHeightWithSpacing());
                     ImGui.TextColored(color, $"{fate.Name}");
