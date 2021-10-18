@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -21,6 +22,7 @@ namespace CEHelper
         private bool Visible;
         private CEHelper _plugin;
         private Dictionary<uint, Vector2> fateRotation = new();
+        private long battleTime = 0;
 
         private static unsafe ref float HRotation => ref *(float*)(Marshal.ReadIntPtr(
             DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? 45 33 C0 33 D2 C6 40 09 01")) + 0x130);
@@ -31,25 +33,30 @@ namespace CEHelper
             config = p.Configuration;
             DalamudApi.PluginInterface.UiBuilder.Draw += Draw;
             DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
-            
-            
+            DalamudApi.PluginInterface.UiBuilder.Draw += DrawACT;
         }
 
         public void Dispose()
         {
             DalamudApi.PluginInterface.UiBuilder.Draw -= Draw;
             DalamudApi.PluginInterface.UiBuilder.OpenConfigUi -= DrawConfigUI;
+            DalamudApi.PluginInterface.UiBuilder.Draw -= DrawACT;
         }
 
 
         private async void UpdateRotate()
         {
-            foreach (var fate in DalamudApi.FateTable)
+            await Task.Run(() =>
             {
-                var rot = await Task.Run(() => (fate.Position - DalamudApi.ClientState.LocalPlayer.Position).ToVector2().Normalize().Rotate(-HRotation));
-                if (fateRotation.ContainsKey(fate.FateId)) fateRotation[fate.FateId] = rot;
-                else fateRotation.Add(fate.FateId,rot);
-            }
+                foreach (var fate in DalamudApi.FateTable)
+                {
+                    var rot = (fate.Position - DalamudApi.ClientState.LocalPlayer.Position).ToVector2().Normalize()
+                        .Rotate(-HRotation);
+
+                    if (fateRotation.ContainsKey(fate.FateId)) fateRotation[fate.FateId] = rot;
+                    else fateRotation.Add(fate.FateId, rot);
+                }
+            });
         }
 
         public void DrawConfigUI()
@@ -93,7 +100,7 @@ namespace CEHelper
             }
 
             if (changed) _plugin.Configuration.Save();
-            
+
             ImGui.End();
         }
 
@@ -143,10 +150,9 @@ namespace CEHelper
             //	return (float)(41.0 / (double)num1 * (((double)num2 + 1024.0) / 2048.0) + 1.0);
             //}
 
-            UpdateRotate();
+            if (Task.CurrentId == null) UpdateRotate();
             foreach (var fate in DalamudApi.FateTable)
             {
-                
                 if (config.LevelEnabled)
                 {
                     if (FateLevel(fate) != config.FateLevel) continue;
@@ -175,7 +181,7 @@ namespace CEHelper
                                  new Vector2(ImGui.GetTextLineHeight() + 5, ImGui.GetTextLineHeight());
                     ImGui.GetWindowDrawList().DrawArrow(arrpos, ImGui.GetTextLineHeightWithSpacing() * 0.500f,
                         ImGui.ColorConvertFloat4ToU32(color),
-                        fateRotation.ContainsKey(fate.FateId)? fateRotation[fate.FateId]:Vector2.Zero, 5);
+                        fateRotation.ContainsKey(fate.FateId) ? fateRotation[fate.FateId] : Vector2.Zero, 5);
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetTextLineHeight() +
                                         ImGui.GetTextLineHeightWithSpacing());
                     ImGui.TextColored(color, $"{fate.Name}");
@@ -205,61 +211,66 @@ namespace CEHelper
             }
 
             ImGui.PopStyleVar(2);
+        }
 
-            ;
-            ImGui.Begin("Damage",ImGuiWindowFlags.MenuBar);
+        void DrawACT()
+        {
+            if (_plugin.Battles.Count < 1 ) return;
+            ImGui.Begin("Damage", ImGuiWindowFlags.MenuBar|ImGuiWindowFlags.NoTitleBar);
             ImGui.BeginMenuBar();
+            
+            
+            var seconds = _plugin.Battles[^1].Duration();
+            if (seconds is > 3600 or < 1)
+            {
+                ImGui.Text($"00:00");
+                seconds = 1;
+            }
+            else ImGui.Text($"{seconds / 60:00}:{seconds % 60:00}");
 
-            ImGui.Text(_plugin.Damage.Count.ToString("D4"));
-            ImGui.SameLine();
+            ImGui.SameLine(ImGui.GetWindowSize().X -50);
             if (ImGui.Button("Reset"))
             {
-                _plugin.Damage.Clear();
+                _plugin.Battles.Clear();
+                _plugin.Battles.Add(new CEHelper.ACTBattle(0,
+                    0, new Dictionary<uint, long>()));
             }
-
 
             ImGui.EndMenuBar();
-            
-            
-            if (DalamudApi.ClientState.LocalPlayer?.TargetObject != null)
+
+            var damage = _plugin.Battles[^1].Damage.ToList();
+            damage.Sort((pair1, pair2) => pair1.Value.CompareTo(pair2.Value));
+            foreach (var (key, value) in damage)
             {
-                foreach (var (key, value) in _plugin.Damage)
+                //PluginLog.Debug(((uint)key).ToString());
+                if (DalamudApi.PartyList.Length > 1)
                 {
-                    //PluginLog.Debug(((uint)key).ToString());
-                    if ((uint)key != DalamudApi.ClientState.LocalPlayer.TargetObjectId) continue;
-                    var from = (uint)(key >> 32);
-                    if (DalamudApi.PartyList.Length > 1)
+                    foreach (var member in DalamudApi.PartyList)
                     {
-                        foreach (var member in DalamudApi.PartyList)
+                        if (member.ObjectId == key)
                         {
-                            if (member.ObjectId == from)
-                            {
-                                //ImGui.Text(key.ToString("X16"));
-                                ImGui.Text(member.Name.TextValue);
-                                ImGui.SameLine();
-                                ImGui.Text(value.ToString());
-                            }
+                            //ImGui.Text(key.ToString("X16"));
+                            ImGui.Text(member.Name.TextValue);
+                            ImGui.SameLine(100);
+                            ImGui.Text(((float)value / seconds).ToString("0.0"));
                         }
                     }
-                    else if (from == DalamudApi.ClientState.LocalPlayer?.ObjectId)
-                    {
-                        ImGui.Text(DalamudApi.ClientState.LocalPlayer.Name.TextValue);
-                        ImGui.SameLine();
-                        ImGui.Text(value.ToString());
-                    }
+                }
+                else if (key == DalamudApi.ClientState.LocalPlayer?.ObjectId)
+                {
+                    ImGui.Text(DalamudApi.ClientState.LocalPlayer.Name.TextValue);
+                    ImGui.SameLine(100);
+                    ImGui.Text(((float)value / seconds).ToString("0.0"));
+                }
 
 
-                    if (from == 0xE0000000)
-                    {
-                        ImGui.Text("DoT");
-                        ImGui.SameLine();
-                        ImGui.Text(value.ToString());
-                    }
-
-
+                if (key == 0xE0000000)
+                {
+                    ImGui.Text("DoT");
+                    ImGui.SameLine(100);
+                    ImGui.Text(((float)value / seconds).ToString("0.0"));
                 }
             }
-
 
             ImGui.End();
         }
