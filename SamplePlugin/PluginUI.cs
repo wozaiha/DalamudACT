@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using CEHelper.Util;
 using Dalamud.Game.ClientState.Fates;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Network;
 using Dalamud.Interface.Colors;
 using Dalamud.Logging;
@@ -215,11 +216,13 @@ namespace CEHelper
 
         void DrawACT()
         {
-            if (_plugin.Battles.Count < 1 ) return;
-            ImGui.Begin("Damage", ImGuiWindowFlags.MenuBar|ImGuiWindowFlags.NoTitleBar);
+            if (_plugin.Battles.Count < 1) return;
+            ImGui.Begin("Damage", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar);
             ImGui.BeginMenuBar();
-            
-            
+
+            if (DalamudApi.ClientState.LocalPlayer != null && (DalamudApi.ClientState.LocalPlayer.StatusFlags & StatusFlags.InCombat) != 0 &&
+                _plugin.Battles[^1].StartTime != 0) _plugin.Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds();
+
             var seconds = _plugin.Battles[^1].Duration();
             if (seconds is > 3600 or < 1)
             {
@@ -228,51 +231,31 @@ namespace CEHelper
             }
             else ImGui.Text($"{seconds / 60:00}:{seconds % 60:00}");
 
-            ImGui.SameLine(ImGui.GetWindowSize().X -50);
+            ImGui.SameLine(ImGui.GetWindowSize().X - 50);
             if (ImGui.Button("Reset"))
             {
                 _plugin.Battles.Clear();
                 _plugin.Battles.Add(new CEHelper.ACTBattle(0,
-                    0, new Dictionary<uint, long>()));
+                    0, new Dictionary<string, long>()));
             }
 
             ImGui.EndMenuBar();
-
+            long total = 0;
             var damage = _plugin.Battles[^1].Damage.ToList();
-            damage.Sort((pair1, pair2) => pair1.Value.CompareTo(pair2.Value));
+            damage.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
             foreach (var (key, value) in damage)
             {
-                //PluginLog.Debug(((uint)key).ToString());
-                if (DalamudApi.PartyList.Length > 1)
-                {
-                    foreach (var member in DalamudApi.PartyList)
-                    {
-                        if (member.ObjectId == key)
-                        {
-                            //ImGui.Text(key.ToString("X16"));
-                            ImGui.Text(member.Name.TextValue);
-                            ImGui.SameLine(100);
-                            ImGui.Text(((float)value / seconds).ToString("0.0"));
-                        }
-                    }
-                }
-                else if (key == DalamudApi.ClientState.LocalPlayer?.ObjectId)
-                {
-                    ImGui.Text(DalamudApi.ClientState.LocalPlayer.Name.TextValue);
-                    ImGui.SameLine(100);
-                    ImGui.Text(((float)value / seconds).ToString("0.0"));
-                }
-
-
-                if (key == 0xE0000000)
-                {
-                    ImGui.Text("DoT");
-                    ImGui.SameLine(100);
-                    ImGui.Text(((float)value / seconds).ToString("0.0"));
-                }
+                ImGui.Text(key);
+                ImGui.SameLine(100);
+                ImGui.Text(((float)value / seconds).ToString("0.0"));
+                total += value;
             }
+            ImGui.Text("总计");
+            ImGui.SameLine(100);
+            ImGui.Text(((float)total / seconds).ToString("0.0"));
 
             ImGui.End();
         }
+
     }
 }
