@@ -24,6 +24,7 @@ namespace CEHelper
         private CEHelper _plugin;
         private Dictionary<uint, Vector2> fateRotation = new();
         private long battleTime = 0;
+        public int choosed = 0;
 
         private static unsafe ref float HRotation => ref *(float*)(Marshal.ReadIntPtr(
             DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? 45 33 C0 33 D2 C6 40 09 01")) + 0x130);
@@ -68,7 +69,7 @@ namespace CEHelper
         private void Draw()
         {
             DrawConfig();
-            DrawUI();
+            DrawCE();
         }
 
         private void DrawConfig()
@@ -105,18 +106,6 @@ namespace CEHelper
             ImGui.End();
         }
 
-        private void DebugTableCell(string value, float[] sizes, bool nextColumn = true)
-        {
-            var width = ImGui.CalcTextSize(value).X;
-            var columnIndex = ImGui.GetColumnIndex();
-            var largest = sizes[columnIndex];
-            if (width > largest)
-                sizes[columnIndex] = width;
-            ImGui.Text(value);
-
-            if (nextColumn)
-                ImGui.NextColumn();
-        }
 
         int FateLevel(Fate fate)
         {
@@ -127,7 +116,7 @@ namespace CEHelper
             return -1;
         }
 
-        private void DrawUI()
+        private void DrawCE()
         {
             if (!config.Enabled) return;
             //if (DalamudApi.ClientState.TerritoryType != 975) return;
@@ -216,14 +205,25 @@ namespace CEHelper
 
         void DrawACT()
         {
+            
             if (_plugin.Battles.Count < 1) return;
-            ImGui.Begin("Damage", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar);
+            ImGui.Begin("Damage", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar );
             ImGui.BeginMenuBar();
+            var items = new []{"","","",""};
+            for (int i = 0; i < _plugin.Battles.Count-1; i++)
+            {
+                items[i] = $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime):t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime):t}";
+                PluginLog.Information(items[i]);
+            }
+            items[_plugin.Battles.Count-1] = $"当前";
+            ImGui.SetNextItemWidth(160);
+            ImGui.Combo("##battles", ref choosed, items, _plugin.Battles.Count);
+            
 
             if (DalamudApi.ClientState.LocalPlayer != null && (DalamudApi.ClientState.LocalPlayer.StatusFlags & StatusFlags.InCombat) != 0 &&
                 _plugin.Battles[^1].StartTime != 0) _plugin.Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds();
 
-            var seconds = _plugin.Battles[^1].Duration();
+            var seconds = _plugin.Battles[choosed].Duration();
             if (seconds is > 3600 or < 1)
             {
                 ImGui.Text($"00:00");
@@ -234,6 +234,7 @@ namespace CEHelper
             ImGui.SameLine(ImGui.GetWindowSize().X - 50);
             if (ImGui.Button("Reset"))
             {
+                choosed = 0;
                 _plugin.Battles.Clear();
                 _plugin.Battles.Add(new CEHelper.ACTBattle(0,
                     0, new Dictionary<string, long>()));
@@ -241,7 +242,7 @@ namespace CEHelper
 
             ImGui.EndMenuBar();
             long total = 0;
-            var damage = _plugin.Battles[^1].Damage.ToList();
+            var damage = _plugin.Battles[choosed].Damage.ToList();
             damage.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
             foreach (var (key, value) in damage)
             {
