@@ -27,7 +27,7 @@ namespace CEHelper
 
         public class ACTBattle
         {
-            public ACTBattle(long time1, long time2, Dictionary<string, long> damage)
+            public ACTBattle(long time1, long time2, Dictionary<string, Dictionary<uint, long>> damage)
             {
                 StartTime = time1;
                 EndTime = time2;
@@ -36,7 +36,7 @@ namespace CEHelper
 
             public long StartTime;
             public long EndTime;
-            public Dictionary<string, long> Damage;
+            public Dictionary<string, Dictionary<uint, long>> Damage;
 
             public long Duration()
             {
@@ -128,55 +128,54 @@ namespace CEHelper
             private byte subtype;
         }
 
-        private unsafe Dictionary<uint, long> Spawn(IntPtr ptr, uint target)
+        private unsafe (uint,uint,long) Spawn(IntPtr ptr, uint target)
         {
             var obj = (NpcSpawn*)ptr;
             if (pet.ContainsKey(obj->spawnerId)) pet[obj->spawnerId] = target;
             else pet.Add(target, obj->spawnerId);
             //PluginLog.Information($"{target:X}:{obj->bNPCName}:{obj->spawnerId:X}");
-            return new Dictionary<uint, long>();
+            return (0xFFFFFFFF,0,0);
         }
 
 
-        private Dictionary<uint, long> DOT(IntPtr ptr)
+        private (uint,uint,long) DOT(IntPtr ptr)
         {
             var dat = Marshal.PtrToStructure<ActorControl>(ptr);
-            var dic = new Dictionary<uint, long>();
-            if (dat.category == 23 && dat.param2 == 3) dic.Add(0xE000_0000, dat.param3);
+            long damage = 0;
+            if (dat.category == 23 && dat.param2 == 3) damage += dat.param3;
 
-            return dic;
+            return (0xE000_0000,0xE000_0000,damage);
         }
 
 
-        private unsafe Dictionary<uint, long> AOE(IntPtr ptr, uint target, int length)
+        private unsafe (uint,uint, long) AOE(IntPtr ptr, uint target, int length)
         {
             var index = 0;
             while (*(long*)(ptr + length * 64 + 48 + index * 8) != 0x0000_0000_0000_0000 && index < length) index++;
             //PluginLog.Information(index.ToString());
-            var dic = new Dictionary<uint, long> { { target, 0 } };
+            var actionId = *(uint*)(ptr + 8);
+            long damage = 0;
             for (var i = 0; i < index; i++)
             {
                 if (index == 0 || Marshal.ReadByte(ptr, i * 64 + 42) != 3) continue;
-                dic[target] += (*(byte*)(ptr + i * 64 + 46) << 16) + *(ushort*)(ptr + i * 64 + 48);
+                damage  += (*(byte*)(ptr + i * 64 + 46) << 16) + *(ushort*)(ptr + i * 64 + 48);
                 //PluginLog.Information((*(long*)(ptr + 560 + i * 8)).ToString("X") +" "+(*(byte*)(ptr+i*64+46)<<16)+*(ushort*)(ptr+i*64+48));
             }
 
-            return dic;
+            return (target,actionId,damage);
         }
 
-        private Dictionary<uint, long> Single(IntPtr ptr, uint target)
+        private (uint,uint, long) Single(IntPtr ptr, uint target)
         {
-            var dic = new Dictionary<uint, long>();
             var targetID = (uint)Marshal.ReadInt32(ptr, 112);
             var actionID = (uint)Marshal.ReadInt32(ptr, 8);
             var effecttype = Marshal.ReadByte(ptr, 42); //03=伤害 0xE=BUFF 04=治疗
             var direct = Marshal.ReadByte(ptr, 43); // 1=暴击  2=直击  3=直爆
             var damage = (Marshal.ReadByte(ptr, 46) << 16) + (ushort)Marshal.ReadInt16(ptr, 48);
-
-            if (effecttype == 3) dic.Add(target, damage);
+            if (effecttype != 3) damage = 0;
             //PluginLog.Information($"@{actionID}:{effecttype:X}:{direct}:{damage}:{targetID:X}");
 
-            return dic;
+            return (target,actionID,(long)damage);
         }
 
         private void SearchForPet()
@@ -199,10 +198,19 @@ namespace CEHelper
 
         #endregion
 
-        private void AddDamage(string name, long value)
+        private void AddDamage(string name, uint action,long value)
         {
-            if (Battles[^1].Damage.ContainsKey(name)) Battles[^1].Damage[name] += value;
-            else Battles[^1].Damage.Add(name, value);
+            if (Battles[^1].Damage.ContainsKey(name))
+            {
+                if (Battles[^1].Damage[name].ContainsKey(action)) Battles[^1].Damage[name][action] += value;
+                else Battles[^1].Damage[name].Add(action,value);
+                Battles[^1].Damage[name][0] += value;   //总伤害
+            }
+            else
+            {
+                Battles[^1].Damage.Add(name, new Dictionary<uint, long>{ { action, value } });
+                Battles[^1].Damage[name].Add(0,value);
+            }
         }
 
         private void NetWork(IntPtr dataPtr, ushort opCode, uint sourceActorId, uint targetActorId,
@@ -210,7 +218,7 @@ namespace CEHelper
         {
             if (Battles.Count == 0)
                 Battles.Add(new ACTBattle(0,
-                    0, new Dictionary<string, long>()));
+                    0, new Dictionary<string, Dictionary<uint, long>>()));
 
             if (direction != NetworkMessageDirection.ZoneDown) return;
 
@@ -227,25 +235,24 @@ namespace CEHelper
 
 
             //PluginLog.Log(opCode.ToString("X"));
-            var dic = opCode switch
+            var (source,actionId,damage) = opCode switch
             {
                 0x6E => Single(dataPtr, targetActorId),
                 0x1D8 => DOT(dataPtr),
                 0x3C0 => AOE(dataPtr, targetActorId, 8),
                 0x0D2 => AOE(dataPtr, targetActorId, 16),
                 0x242 => Spawn(dataPtr, targetActorId),
-                _ => null
+                _ => (0xFFFFFFFF,(uint)0,0)
             };
-            if (dic == null) return;
+            if (actionId == 0 || source == 0xFFFFFFFF || damage == 0) return;
 
-            foreach (var (key0, value) in dic)
-            {
-                var key = key0;
+            
+                var key = source;
                 //PluginLog.Log($"{key:X} {value}");
                 if (Battles[^1].Duration() > 1 && time - Battles[^1].EndTime > 10) //下一场战斗
                 {
                     Battles.Add(new ACTBattle(0,
-                        0, new Dictionary<string, long>()));
+                        0, new Dictionary<string, Dictionary<uint, long>>()));
                     if (Battles.Count > 3) Battles.RemoveAt(0);
                     Battles[^1].StartTime = time;
                     SearchForPet();
@@ -258,14 +265,14 @@ namespace CEHelper
                 {
                     if (DalamudApi.ClientState.LocalPlayer != null &&
                         key == DalamudApi.ClientState.LocalPlayer.ObjectId)
-                        AddDamage(DalamudApi.ClientState.LocalPlayer.Name.TextValue, value);
-                    if (key == 0xE000_0000) AddDamage("Dot", value);
+                        AddDamage(DalamudApi.ClientState.LocalPlayer.Name.TextValue,actionId,damage);
+                    if (key == 0xE000_0000) AddDamage("Dot", actionId,damage);
                 }
                 else
                 {
-                    AddDamage(member.Name.TextValue, value);
+                    AddDamage(member.Name.TextValue, actionId,damage);
                 }
-            }
+            
         }
 
 

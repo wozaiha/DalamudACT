@@ -13,6 +13,8 @@ using Dalamud.Game.Network;
 using Dalamud.Interface.Colors;
 using Dalamud.Logging;
 using ImGuiNET;
+using Lumina.Excel;
+using Action = Lumina.Excel.GeneratedSheets.Action;
 
 namespace CEHelper
 {
@@ -25,6 +27,7 @@ namespace CEHelper
         private Dictionary<uint, Vector2> fateRotation = new();
         private long battleTime = 0;
         public int choosed = 0;
+        ExcelSheet<Action> sheet;
 
         private static unsafe ref float HRotation => ref *(float*)(Marshal.ReadIntPtr(
             DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? 45 33 C0 33 D2 C6 40 09 01")) + 0x130);
@@ -33,6 +36,7 @@ namespace CEHelper
         {
             _plugin = p;
             config = p.Configuration;
+            sheet = DalamudApi.DataManager.GetExcelSheet<Action>();
             DalamudApi.PluginInterface.UiBuilder.Draw += Draw;
             DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
             DalamudApi.PluginInterface.UiBuilder.Draw += DrawACT;
@@ -203,6 +207,23 @@ namespace CEHelper
             ImGui.PopStyleVar(2);
         }
 
+        void DrawDetails(Dictionary<uint, long> Damage,long time)
+        {
+            ImGui.BeginTooltip();
+            var damage = Damage.ToList();
+            damage.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
+
+            foreach (var (action,dmg) in damage)
+            {
+                if (action == 0 ||sheet.GetRow(action) == null) continue;
+                ImGui.Text(sheet.GetRow(action)!.Name);
+                ImGui.SameLine(100);
+                ImGui.Text(((float)dmg / time).ToString("F1"));
+            }
+            
+            ImGui.EndTooltip();
+        }
+
         void DrawACT()
         {
             
@@ -237,19 +258,20 @@ namespace CEHelper
                 choosed = 0;
                 _plugin.Battles.Clear();
                 _plugin.Battles.Add(new CEHelper.ACTBattle(0,
-                    0, new Dictionary<string, long>()));
+                    0, new Dictionary<string, Dictionary<uint, long>>()));
             }
 
             ImGui.EndMenuBar();
             long total = 0;
             var damage = _plugin.Battles[choosed].Damage.ToList();
-            damage.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
+            damage.Sort((pair1, pair2) => pair2.Value[0].CompareTo(pair1.Value[0]));
             foreach (var (key, value) in damage)
             {
                 ImGui.Text(key);
                 ImGui.SameLine(100);
-                ImGui.Text(((float)value / seconds).ToString("0.0"));
-                total += value;
+                ImGui.Text(((float)value[0] / seconds).ToString("0.0"));
+                if (ImGui.IsItemHovered()) DrawDetails(value,seconds);
+                total += value[0];
             }
             ImGui.Text("总计");
             ImGui.SameLine(100);
