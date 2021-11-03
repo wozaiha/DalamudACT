@@ -234,7 +234,7 @@ namespace CEHelper
             for (int i = 0; i < _plugin.Battles.Count-1; i++)
             {
                 items[i] = $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime):t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime):t}";
-                PluginLog.Information(items[i]);
+               // PluginLog.Information(items[i]);
             }
             items[_plugin.Battles.Count-1] = $"当前";
             ImGui.SetNextItemWidth(160);

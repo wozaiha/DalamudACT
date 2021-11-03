@@ -69,13 +69,12 @@ namespace CEHelper
         private struct ActorControl
         {
             public ushort category;
-            private ushort padding;
+            public ushort padding;
             public uint param1;
             public uint param2;
             public uint param3;
             public uint param4;
-
-            private uint padding1;
+            public uint padding1;
             //跳Dot      23:????:0000:0003:伤害:ActorID:0
             //效果结束   21:????:BUFF:0000:ActorID:0:0
         }
@@ -131,18 +130,24 @@ namespace CEHelper
         private unsafe (uint,uint,long) Spawn(IntPtr ptr, uint target)
         {
             var obj = (NpcSpawn*)ptr;
-            if (pet.ContainsKey(obj->spawnerId)) pet[obj->spawnerId] = target;
+            if (pet.ContainsKey(target)) pet[target] = obj->spawnerId;
             else pet.Add(target, obj->spawnerId);
             //PluginLog.Information($"{target:X}:{obj->bNPCName}:{obj->spawnerId:X}");
             return (0xFFFFFFFF,0,0);
         }
 
 
-        private (uint,uint,long) DOT(IntPtr ptr)
+        private unsafe (uint,uint,long) DOT(IntPtr ptr,uint target)
         {
             var dat = Marshal.PtrToStructure<ActorControl>(ptr);
+            if (dat.category != 23 || dat.param2 != 3) return (0xE000_0000, 0xE000_0000, 0);
             long damage = 0;
-            if (dat.category == 23 && dat.param2 == 3) damage += dat.param3;
+            
+            if (target > 0x40000000)
+            {
+                PluginLog.Information($"{target:X}:{dat.category}:{dat.padding:D5}:{dat.param1}:{dat.param2}:{dat.param3}:{dat.param4:X}:{dat.padding1:X}");
+                damage = dat.param3;
+            }
 
             return (0xE000_0000,0xE000_0000,damage);
         }
@@ -170,7 +175,7 @@ namespace CEHelper
             var targetID = (uint)Marshal.ReadInt32(ptr, 112);
             var actionID = (uint)Marshal.ReadInt32(ptr, 8);
             var effecttype = Marshal.ReadByte(ptr, 42); //03=伤害 0xE=BUFF 04=治疗
-            var direct = Marshal.ReadByte(ptr, 43); // 1=暴击  2=直击  3=直爆
+            //var direct = Marshal.ReadByte(ptr, 43); // 1=暴击  2=直击  3=直爆
             var damage = (Marshal.ReadByte(ptr, 46) << 16) + (ushort)Marshal.ReadInt16(ptr, 48);
             if (effecttype != 3) damage = 0;
             //PluginLog.Information($"@{actionID}:{effecttype:X}:{direct}:{damage}:{targetID:X}");
@@ -238,17 +243,14 @@ namespace CEHelper
             var (source,actionId,damage) = opCode switch
             {
                 0x6E => Single(dataPtr, targetActorId),
-                0x1D8 => DOT(dataPtr),
+                0x1D8 => DOT(dataPtr,targetActorId),
                 0x3C0 => AOE(dataPtr, targetActorId, 8),
                 0x0D2 => AOE(dataPtr, targetActorId, 16),
                 0x242 => Spawn(dataPtr, targetActorId),
                 _ => (0xFFFFFFFF,(uint)0,0)
             };
-            if (actionId == 0 || source == 0xFFFFFFFF || damage == 0) return;
+            if (source == 0xFFFFFFFF || actionId == 0 || damage == 0) return;
 
-            
-                var key = source;
-                //PluginLog.Log($"{key:X} {value}");
                 if (Battles[^1].Duration() > 1 && time - Battles[^1].EndTime > 10) //下一场战斗
                 {
                     Battles.Add(new ACTBattle(0,
@@ -259,14 +261,14 @@ namespace CEHelper
                     PluginUi.choosed = Battles.Count - 1;
                 }
 
-                if (pet.ContainsKey(key)) key = pet[key]; //来源是宠物，替换成owner
-                var member = DalamudApi.PartyList.FirstOrDefault(x => x.ObjectId == key);
+                if (pet.ContainsKey(source)) source = pet[source]; //来源是宠物，替换成owner
+                var member = DalamudApi.PartyList.FirstOrDefault(x => x.ObjectId == source);
                 if (member == default)
                 {
                     if (DalamudApi.ClientState.LocalPlayer != null &&
-                        key == DalamudApi.ClientState.LocalPlayer.ObjectId)
+                        source == DalamudApi.ClientState.LocalPlayer.ObjectId)
                         AddDamage(DalamudApi.ClientState.LocalPlayer.Name.TextValue,actionId,damage);
-                    if (key == 0xE000_0000) AddDamage("Dot", actionId,damage);
+                    if (source == 0xE000_0000 && actionId == 0xE000_0000) AddDamage("Dot", actionId,damage);
                 }
                 else
                 {
