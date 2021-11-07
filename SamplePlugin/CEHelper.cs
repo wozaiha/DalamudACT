@@ -14,6 +14,7 @@ using Dalamud.Game.Gui.Toast;
 using Dalamud.Game.Network;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using ImGuiScene;
 
 namespace CEHelper
 {
@@ -32,11 +33,13 @@ namespace CEHelper
                 StartTime = time1;
                 EndTime = time2;
                 Damage = damage;
+                Icon = new Dictionary<string, TextureWrap?>();
             }
 
             public long StartTime;
             public long EndTime;
             public Dictionary<string, Dictionary<uint, long>> Damage;
+            public Dictionary<string, TextureWrap?>? Icon;
 
             public long Duration()
             {
@@ -203,17 +206,23 @@ namespace CEHelper
 
         #endregion
 
-        private void AddDamage(string name, uint action,long value)
+        private void AddDamage(string name, uint action,long value,uint iconid)
         {
-            if (Battles[^1].Damage.ContainsKey(name))
+            if (Battles[^1].Damage.ContainsKey(name)) //已有key
             {
                 if (Battles[^1].Damage[name].ContainsKey(action)) Battles[^1].Damage[name][action] += value;
                 else Battles[^1].Damage[name].Add(action,value);
                 Battles[^1].Damage[name][0] += value;   //总伤害
             }
             else
-            {
+            {   //新建
                 Battles[^1].Damage.Add(name, new Dictionary<uint, long>{ { action, value } });
+                if (iconid != 0)
+                {
+                    var icon = DalamudApi.DataManager.GetImGuiTextureHqIcon(iconid);
+                    Battles[^1].Icon.Add(name,icon);
+                }
+                
                 Battles[^1].Damage[name].Add(0,value);
             }
         }
@@ -267,12 +276,12 @@ namespace CEHelper
                 {
                     if (DalamudApi.ClientState.LocalPlayer != null &&
                         source == DalamudApi.ClientState.LocalPlayer.ObjectId)
-                        AddDamage(DalamudApi.ClientState.LocalPlayer.Name.TextValue,actionId,damage);
-                    if (source == 0xE000_0000 && actionId == 0xE000_0000) AddDamage("Dot", actionId,damage);
+                        AddDamage(DalamudApi.ClientState.LocalPlayer.Name.TextValue,actionId,damage,DalamudApi.ClientState.LocalPlayer.ClassJob.Id+62100);
+                    if (source == 0xE000_0000 && actionId == 0xE000_0000) AddDamage("Dot", actionId,damage,0);
                 }
                 else
                 {
-                    AddDamage(member.Name.TextValue, actionId,damage);
+                    AddDamage(member.Name.TextValue, actionId,damage,member.ClassJob.Id+62100);
                 }
             
         }

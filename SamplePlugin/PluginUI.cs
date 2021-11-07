@@ -7,9 +7,12 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using CEHelper.Util;
+using Dalamud;
 using Dalamud.Game.ClientState.Fates;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Network;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Logging;
 using ImGuiNET;
@@ -27,7 +30,7 @@ namespace CEHelper
         private Dictionary<uint, Vector2> fateRotation = new();
         private long battleTime = 0;
         public int choosed = 0;
-        ExcelSheet<Action> sheet;
+        private ExcelSheet<Action> sheet;
 
         private static unsafe ref float HRotation => ref *(float*)(Marshal.ReadIntPtr(
             DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? 45 33 C0 33 D2 C6 40 09 01")) + 0x130);
@@ -91,9 +94,7 @@ namespace CEHelper
             changed |= ImGui.Checkbox("Locked", ref config.Locked);
             changed |= ImGui.Checkbox("Show only One zone", ref config.LevelEnabled);
             if (config.LevelEnabled)
-            {
                 changed |= ImGui.Combo("FateLevel", ref config.FateLevel, new[] { "Low", "MIDDLE", "TOP" }, 3);
-            }
 
             if (!config.Locked)
             {
@@ -111,7 +112,7 @@ namespace CEHelper
         }
 
 
-        int FateLevel(Fate fate)
+        private int FateLevel(Fate fate)
         {
             if (fate.FateId < 1717) return -1;
             if (fate.FateId < 1725) return 0;
@@ -148,9 +149,8 @@ namespace CEHelper
             foreach (var fate in DalamudApi.FateTable)
             {
                 if (config.LevelEnabled)
-                {
-                    if (FateLevel(fate) != config.FateLevel) continue;
-                }
+                    if (FateLevel(fate) != config.FateLevel)
+                        continue;
 
                 var color = fate.State switch
                 {
@@ -207,42 +207,45 @@ namespace CEHelper
             ImGui.PopStyleVar(2);
         }
 
-        void DrawDetails(Dictionary<uint, long> Damage,long time)
+        private void DrawDetails(Dictionary<uint, long> Damage, long time)
         {
             ImGui.BeginTooltip();
             var damage = Damage.ToList();
             damage.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
 
-            foreach (var (action,dmg) in damage)
+            foreach (var (action, dmg) in damage)
             {
-                if (action == 0 ||sheet.GetRow(action) == null) continue;
+                if (action == 0 || sheet.GetRow(action) == null) continue;
+                //ImGui.Image(DalamudApi.DataManager.GetImGuiTextureHqIcon(sheet.GetRow(action)!.Icon)!.ImGuiHandle,
+                    //new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+                //ImGui.SameLine();
                 ImGui.Text(sheet.GetRow(action)!.Name);
-                ImGui.SameLine(100);
+                ImGui.SameLine(120);
                 ImGui.Text(((float)dmg / time).ToString("F1"));
             }
-            
+
             ImGui.EndTooltip();
         }
 
-        void DrawACT()
+        private void DrawACT()
         {
-            
             if (_plugin.Battles.Count < 1) return;
-            ImGui.Begin("Damage", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar );
+            ImGui.Begin("Damage", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar);
             ImGui.BeginMenuBar();
-            var items = new []{"","","",""};
-            for (int i = 0; i < _plugin.Battles.Count-1; i++)
-            {
-                items[i] = $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime):t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime):t}";
-               // PluginLog.Information(items[i]);
-            }
-            items[_plugin.Battles.Count-1] = $"当前";
+            var items = new[] { "", "", "", "" };
+            for (var i = 0; i < _plugin.Battles.Count - 1; i++)
+                items[i] =
+                    $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime):t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime):t}";
+            // PluginLog.Information(items[i]);
+            items[_plugin.Battles.Count - 1] = $"当前";
             ImGui.SetNextItemWidth(160);
             ImGui.Combo("##battles", ref choosed, items, _plugin.Battles.Count);
-            
 
-            if (DalamudApi.ClientState.LocalPlayer != null && (DalamudApi.ClientState.LocalPlayer.StatusFlags & StatusFlags.InCombat) != 0 &&
-                _plugin.Battles[^1].StartTime != 0) _plugin.Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds();
+
+            if (DalamudApi.ClientState.LocalPlayer != null &&
+                (DalamudApi.ClientState.LocalPlayer.StatusFlags & StatusFlags.InCombat) != 0 &&
+                _plugin.Battles[^1].StartTime != 0)
+                _plugin.Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds();
 
             var seconds = _plugin.Battles[choosed].Duration();
             if (seconds is > 3600 or < 1)
@@ -250,7 +253,10 @@ namespace CEHelper
                 ImGui.Text($"00:00");
                 seconds = 1;
             }
-            else ImGui.Text($"{seconds / 60:00}:{seconds % 60:00}");
+            else
+            {
+                ImGui.Text($"{seconds / 60:00}:{seconds % 60:00}");
+            }
 
             ImGui.SameLine(ImGui.GetWindowSize().X - 50);
             if (ImGui.Button("Reset"))
@@ -267,18 +273,23 @@ namespace CEHelper
             damage.Sort((pair1, pair2) => pair2.Value[0].CompareTo(pair1.Value[0]));
             foreach (var (key, value) in damage)
             {
+                if (_plugin.Battles[choosed].Icon.TryGetValue(key, out var icon))
+                {
+                    ImGui.Image(icon.ImGuiHandle, new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+                    ImGui.SameLine();
+                }
+
                 ImGui.Text(key);
-                ImGui.SameLine(100);
+                ImGui.SameLine(120);
                 ImGui.Text(((float)value[0] / seconds).ToString("0.0"));
-                if (ImGui.IsItemHovered()) DrawDetails(value,seconds);
+                if (ImGui.IsItemHovered()) DrawDetails(value, seconds);
                 total += value[0];
             }
-            ImGui.Text("总计");
-            ImGui.SameLine(100);
-            ImGui.Text(((float)total / seconds).ToString("0.0"));
 
+            ImGui.Text("总计");
+            ImGui.SameLine(120);
+            ImGui.Text(((float)total / seconds).ToString("0.0"));
             ImGui.End();
         }
-
     }
 }
