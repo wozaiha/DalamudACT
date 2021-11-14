@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Dalamud.Interface;
 
-namespace CEHelper.Util
+namespace ACT.Util
 {
 	static class Vector2Intersect
 	{

@@ -1,41 +1,32 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using CEHelper.Util;
-using Dalamud;
+using ACT.Util;
 using Dalamud.Game.ClientState.Fates;
 using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Game.Network;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface;
-using Dalamud.Interface.Colors;
-using Dalamud.Logging;
 using ImGuiNET;
 using Lumina.Excel;
 using Action = Lumina.Excel.GeneratedSheets.Action;
 
-namespace CEHelper
+namespace ACT
 {
     internal class PluginUI : IDisposable
     {
         private Configuration config;
 
         private bool Visible;
-        private CEHelper _plugin;
+        private ACT _plugin;
         private Dictionary<uint, Vector2> fateRotation = new();
-        private long battleTime = 0;
         public int choosed = 0;
         private ExcelSheet<Action> sheet;
 
         private static unsafe ref float HRotation => ref *(float*)(Marshal.ReadIntPtr(
             DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? 45 33 C0 33 D2 C6 40 09 01")) + 0x130);
 
-        public PluginUI(CEHelper p)
+        public PluginUI(ACT p)
         {
             _plugin = p;
             config = p.Configuration;
@@ -76,39 +67,39 @@ namespace CEHelper
         private void Draw()
         {
             DrawConfig();
-            DrawCE();
+            //DrawCE();
         }
 
         private void DrawConfig()
         {
-            if (!Visible) return;
+            //if (!Visible) return;
 
-            if (!ImGui.Begin("Config", ref Visible, ImGuiWindowFlags.NoCollapse))
-            {
-                ImGui.End();
-                return;
-            }
+            //if (!ImGui.Begin("Config", ref Visible, ImGuiWindowFlags.NoCollapse))
+            //{
+            //    ImGui.End();
+            //    return;
+            //}
 
-            var changed = false;
-            changed |= ImGui.Checkbox("Enabled", ref config.Enabled);
-            changed |= ImGui.Checkbox("Locked", ref config.Locked);
-            changed |= ImGui.Checkbox("Show only One zone", ref config.LevelEnabled);
-            if (config.LevelEnabled)
-                changed |= ImGui.Combo("FateLevel", ref config.FateLevel, new[] { "Low", "MIDDLE", "TOP" }, 3);
+            //var changed = false;
+            //changed |= ImGui.Checkbox("Enabled", ref config.Enabled);
+            //changed |= ImGui.Checkbox("Locked", ref config.Locked);
+            //changed |= ImGui.Checkbox("Show only One zone", ref config.LevelEnabled);
+            //if (config.LevelEnabled)
+            //    changed |= ImGui.Combo("FateLevel", ref config.FateLevel, new[] { "Low", "MIDDLE", "TOP" }, 3);
 
-            if (!config.Locked)
-            {
-                ImGui.SetNextWindowSize(new Vector2(150, 400));
-                ImGui.SetNextWindowPos(config.WindowPos, ImGuiCond.Once);
-                ImGui.Begin("Position",
-                    ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar);
-                config.WindowPos = ImGui.GetWindowPos();
-                ImGui.End();
-            }
+            //if (!config.Locked)
+            //{
+            //    ImGui.SetNextWindowSize(new Vector2(150, 400));
+            //    ImGui.SetNextWindowPos(config.WindowPos, ImGuiCond.Once);
+            //    ImGui.Begin("Position",
+            //        ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar);
+            //    config.WindowPos = ImGui.GetWindowPos();
+            //    ImGui.End();
+            //}
 
-            if (changed) _plugin.Configuration.Save();
+            //if (changed) _plugin.Configuration.Save();
 
-            ImGui.End();
+            //ImGui.End();
         }
 
 
@@ -121,91 +112,91 @@ namespace CEHelper
             return -1;
         }
 
-        private void DrawCE()
-        {
-            if (!config.Enabled) return;
-            //if (DalamudApi.ClientState.TerritoryType != 975) return;
+        //private void DrawCE()
+        //{
+        //    if (!config.Enabled) return;
+        //    //if (DalamudApi.ClientState.TerritoryType != 975) return;
 
-            const ImGuiWindowFlags windowFlags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoResize |
-                                                 ImGuiWindowFlags.AlwaysAutoResize |
-                                                 ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoInputs |
-                                                 ImGuiWindowFlags.NoNav |
-                                                 ImGuiWindowFlags.NoBringToFrontOnFocus |
-                                                 ImGuiWindowFlags.NoSavedSettings;
+        //    const ImGuiWindowFlags windowFlags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoResize |
+        //                                         ImGuiWindowFlags.AlwaysAutoResize |
+        //                                         ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoInputs |
+        //                                         ImGuiWindowFlags.NoNav |
+        //                                         ImGuiWindowFlags.NoBringToFrontOnFocus |
+        //                                         ImGuiWindowFlags.NoSavedSettings;
 
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 2);
+        //    ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
+        //    ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 2);
 
-            var pos = config.WindowPos;
+        //    var pos = config.WindowPos;
 
-            //float ConvertRawPositionToMapCoordinate(int pos, float scale)
-            //{
-            //	float num1 = scale / 100f;
-            //	float num2 = (float)((double)pos * (double)num1 / 1000.0);
-            //	return (float)(41.0 / (double)num1 * (((double)num2 + 1024.0) / 2048.0) + 1.0);
-            //}
+        //    //float ConvertRawPositionToMapCoordinate(int pos, float scale)
+        //    //{
+        //    //	float num1 = scale / 100f;
+        //    //	float num2 = (float)((double)pos * (double)num1 / 1000.0);
+        //    //	return (float)(41.0 / (double)num1 * (((double)num2 + 1024.0) / 2048.0) + 1.0);
+        //    //}
 
-            if (Task.CurrentId == null) UpdateRotate();
-            foreach (var fate in DalamudApi.FateTable)
-            {
-                if (config.LevelEnabled)
-                    if (FateLevel(fate) != config.FateLevel)
-                        continue;
+        //    if (Task.CurrentId == null) UpdateRotate();
+        //    foreach (var fate in DalamudApi.FateTable)
+        //    {
+        //        if (config.LevelEnabled)
+        //            if (FateLevel(fate) != config.FateLevel)
+        //                continue;
 
-                var color = fate.State switch
-                {
-                    FateState.Preparation => ImGuiColors.DPSRed,
-                    (FateState)6 => ImGuiColors.DPSRed,
-                    FateState.Ended => ImGuiColors.DalamudOrange,
-                    FateState.WaitingForEnd => ImGuiColors.DalamudOrange,
-                    _ => ImGuiColors.DalamudWhite
-                };
+        //        var color = fate.State switch
+        //        {
+        //            FateState.Preparation => ImGuiColors.DPSRed,
+        //            (FateState)6 => ImGuiColors.DPSRed,
+        //            FateState.Ended => ImGuiColors.DalamudOrange,
+        //            FateState.WaitingForEnd => ImGuiColors.DalamudOrange,
+        //            _ => ImGuiColors.DalamudWhite
+        //        };
 
-                ImGui.PushStyleColor(ImGuiCol.Border, color);
-                ImGui.SetNextWindowPos(pos);
-                ImGui.SetNextWindowSizeConstraints(
-                    new Vector2(150, float.MinValue),
-                    new Vector2(150, float.MaxValue));
+        //        ImGui.PushStyleColor(ImGuiCol.Border, color);
+        //        ImGui.SetNextWindowPos(pos);
+        //        ImGui.SetNextWindowSizeConstraints(
+        //            new Vector2(150, float.MinValue),
+        //            new Vector2(150, float.MaxValue));
 
-                if (ImGui.Begin($"{fate.Name}", windowFlags))
-                {
-                    //Vector3 fatePos = new Vector3(fate.Position.X, fate.Position.Z, fate.Position.Y);
-                    var fatePos = fate.Position;
-                    var arrpos = ImGui.GetWindowPos() /*+ ImGui.GetCursorPos()*/ +
-                                 new Vector2(ImGui.GetTextLineHeight() + 5, ImGui.GetTextLineHeight());
-                    ImGui.GetWindowDrawList().DrawArrow(arrpos, ImGui.GetTextLineHeightWithSpacing() * 0.500f,
-                        ImGui.ColorConvertFloat4ToU32(color),
-                        fateRotation.ContainsKey(fate.FateId) ? fateRotation[fate.FateId] : Vector2.Zero, 5);
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetTextLineHeight() +
-                                        ImGui.GetTextLineHeightWithSpacing());
-                    ImGui.TextColored(color, $"{fate.Name}");
-                    ImGui.Separator();
+        //        if (ImGui.Begin($"{fate.Name}", windowFlags))
+        //        {
+        //            //Vector3 fatePos = new Vector3(fate.Position.X, fate.Position.Z, fate.Position.Y);
+        //            var fatePos = fate.Position;
+        //            var arrpos = ImGui.GetWindowPos() /*+ ImGui.GetCursorPos()*/ +
+        //                         new Vector2(ImGui.GetTextLineHeight() + 5, ImGui.GetTextLineHeight());
+        //            ImGui.GetWindowDrawList().DrawArrow(arrpos, ImGui.GetTextLineHeightWithSpacing() * 0.500f,
+        //                ImGui.ColorConvertFloat4ToU32(color),
+        //                fateRotation.ContainsKey(fate.FateId) ? fateRotation[fate.FateId] : Vector2.Zero, 5);
+        //            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetTextLineHeight() +
+        //                                ImGui.GetTextLineHeightWithSpacing());
+        //            ImGui.TextColored(color, $"{fate.Name}");
+        //            ImGui.Separator();
 
-                    var dis = fatePos.Distance2D(DalamudApi.ClientState.LocalPlayer.Position);
-                    ImGui.TextUnformatted($"{dis:0.0}");
-                    ImGui.SameLine(70);
-                    var time = fate.TimeRemaining;
-                    if (color != ImGuiColors.DPSRed)
-                    {
-                        ImGui.Text($"{time / 60:00}:{time % 60:00}");
-                        ImGui.SameLine(120);
-                        ImGui.Text($"{fate.Progress}%%");
-                    }
-                    else
-                    {
-                        ImGui.TextColored(color, "准备中");
-                    }
+        //            var dis = fatePos.Distance2D(DalamudApi.ClientState.LocalPlayer.Position);
+        //            ImGui.TextUnformatted($"{dis:0.0}");
+        //            ImGui.SameLine(70);
+        //            var time = fate.TimeRemaining;
+        //            if (color != ImGuiColors.DPSRed)
+        //            {
+        //                ImGui.Text($"{time / 60:00}:{time % 60:00}");
+        //                ImGui.SameLine(120);
+        //                ImGui.Text($"{fate.Progress}%%");
+        //            }
+        //            else
+        //            {
+        //                ImGui.TextColored(color, "准备中");
+        //            }
 
-                    pos += new Vector2(0, ImGui.GetWindowSize().Y);
+        //            pos += new Vector2(0, ImGui.GetWindowSize().Y);
 
-                    ImGui.End();
-                }
+        //            ImGui.End();
+        //        }
 
-                ImGui.PopStyleColor();
-            }
+        //        ImGui.PopStyleColor();
+        //    }
 
-            ImGui.PopStyleVar(2);
-        }
+        //    ImGui.PopStyleVar(2);
+        //}
 
         private void DrawDetails(Dictionary<uint, long> Damage, long time)
         {
@@ -235,9 +226,9 @@ namespace CEHelper
             var items = new[] { "", "", "", "" };
             for (var i = 0; i < _plugin.Battles.Count - 1; i++)
                 items[i] =
-                    $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime):t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime):t}";
+                    $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime).ToLocalTime():t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime).ToLocalTime():t} {_plugin.Battles[i].Zone}";
             // PluginLog.Information(items[i]);
-            items[_plugin.Battles.Count - 1] = $"当前";
+            items[_plugin.Battles.Count - 1] = $"当前 {_plugin.Battles[_plugin.Battles.Count - 1].Zone}";
             ImGui.SetNextItemWidth(160);
             ImGui.Combo("##battles", ref choosed, items, _plugin.Battles.Count);
 
@@ -263,7 +254,7 @@ namespace CEHelper
             {
                 choosed = 0;
                 _plugin.Battles.Clear();
-                _plugin.Battles.Add(new CEHelper.ACTBattle(0,
+                _plugin.Battles.Add(new ACT.ACTBattle(0,
                     0, new Dictionary<string, Dictionary<uint, long>>()));
             }
 

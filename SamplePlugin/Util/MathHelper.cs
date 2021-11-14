@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 
-namespace CEHelper.Util
+namespace ACT.Util
 {
 	public static class MathHelper
 	{

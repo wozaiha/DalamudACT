@@ -3,7 +3,7 @@ using System.Numerics;
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 
-namespace CEHelper
+namespace ACT
 {
     [Serializable]
     public class Configuration : IPluginConfiguration

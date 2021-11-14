@@ -7,7 +7,7 @@ using ImGuiScene;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
 
-namespace CEHelper.Util
+namespace ACT.Util
 {
 	static class ImguiUtil
 	{

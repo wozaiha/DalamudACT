@@ -32,8 +32,8 @@
 
   <PropertyGroup>
     <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-    <AssemblyName>CEHelper</AssemblyName>
-    <RootNamespace>CEHelper</RootNamespace>
+    <AssemblyName>ACT</AssemblyName>
+    <RootNamespace>ACT</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

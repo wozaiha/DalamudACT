@@ -1,26 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using CEHelper.Util;
-using Dalamud;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.ClientState.Party;
-using Dalamud.Game.Gui.Toast;
 using Dalamud.Game.Network;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using ImGuiScene;
+using Lumina.Excel.GeneratedSheets;
 
-namespace CEHelper
+namespace ACT
 {
-    public sealed class CEHelper : IDalamudPlugin
+    public sealed class ACT : IDalamudPlugin
     {
-        public string Name => "CEHelper";
+        public string Name => "ACT";
 
         public Configuration Configuration;
         private PluginUI PluginUi;
@@ -34,10 +28,12 @@ namespace CEHelper
                 EndTime = time2;
                 Damage = damage;
                 Icon = new Dictionary<string, TextureWrap?>();
+                Zone = "";
             }
 
             public long StartTime;
             public long EndTime;
+            public string? Zone;
             public Dictionary<string, Dictionary<uint, long>> Damage;
             public Dictionary<string, TextureWrap?>? Icon;
 
@@ -54,7 +50,7 @@ namespace CEHelper
         public List<ACTBattle> Battles = new();
 
 
-        public CEHelper(DalamudPluginInterface pluginInterface)
+        public ACT(DalamudPluginInterface pluginInterface)
         {
             DalamudApi.Initialize(this, pluginInterface);
 
@@ -69,7 +65,7 @@ namespace CEHelper
 
         #region OPcode functions
 
-        private struct ActorControl
+        private struct ActorControlStruct
         {
             public ushort category;
             public ushort padding;
@@ -140,19 +136,20 @@ namespace CEHelper
         }
 
 
-        private unsafe (uint,uint,long) DOT(IntPtr ptr,uint target)
+        private (uint,uint,long) ActorControl(IntPtr ptr,uint target)
         {
-            var dat = Marshal.PtrToStructure<ActorControl>(ptr);
+            var dat = Marshal.PtrToStructure<ActorControlStruct>(ptr);
+            //PluginLog.Information($"{target:X}:{dat.category}:{dat.padding:D5}:{dat.param1}:{dat.param2}:{dat.param3}:{dat.param4:X}:{dat.padding1:X}");
             if (dat.category != 23 || dat.param2 != 3) return (0xE000_0000, 0xE000_0000, 0);
             long damage = 0;
             
             if (target > 0x40000000)
             {
-                PluginLog.Information($"{target:X}:{dat.category}:{dat.padding:D5}:{dat.param1}:{dat.param2}:{dat.param3}:{dat.param4:X}:{dat.padding1:X}");
+                //PluginLog.Information($"{target:X}:{dat.category}:{dat.padding:D5}:{dat.param1}:{dat.param2}:{dat.param3}:{dat.param4:X}:{dat.padding1:X}");
                 damage = dat.param3;
             }
 
-            return (0xE000_0000,0xE000_0000,damage);
+            return dat.param1 == 861 ? (dat.param4, 2878, damage) : (0xE000_0000,0xE000_0000,damage);//野火
         }
 
 
@@ -173,15 +170,33 @@ namespace CEHelper
             return (target,actionId,damage);
         }
 
-        private (uint,uint, long) Single(IntPtr ptr, uint target)
+        private (uint,uint, long) Effect(IntPtr ptr, uint target)
         {
+            //var str = "";
+            //for (int i = 0; i < 6; i++)
+            //{
+            //    for (int j = 0; j < 100; j++)
+            //    {
+            //        str += Marshal.ReadByte(ptr, i * 100 + j).ToString("X2") + " ";
+            //    }
+            //    PluginLog.Information(str);
+            //    str = "";
+            //}
+            //PluginLog.Information("END");
+
             var targetID = (uint)Marshal.ReadInt32(ptr, 112);
             var actionID = (uint)Marshal.ReadInt32(ptr, 8);
             var effecttype = Marshal.ReadByte(ptr, 42); //03=伤害 0xE=BUFF 04=治疗
-            //var direct = Marshal.ReadByte(ptr, 43); // 1=暴击  2=直击  3=直爆
+            var direct = Marshal.ReadByte(ptr, 43); // 1=暴击  2=直击  3=直爆
+            var mask = (ushort)Marshal.ReadInt16(ptr, 45);
             var damage = (Marshal.ReadByte(ptr, 46) << 16) + (ushort)Marshal.ReadInt16(ptr, 48);
+            var mask2 = (ushort)Marshal.ReadByte(ptr, 50);
             if (effecttype != 3) damage = 0;
-            //PluginLog.Information($"@{actionID}:{effecttype:X}:{direct}:{damage}:{targetID:X}");
+            if (actionID > 10)
+            {
+                if ((mask>>5 & 0x3) != 0) PluginLog.Information("True");
+                PluginLog.Information($"@{actionID}:{effecttype:X}:{direct}:{damage}:{targetID:X}:{mask:X2}:{mask2:X2}");
+            }
 
             return (target,actionID,(long)damage);
         }
@@ -243,6 +258,8 @@ namespace CEHelper
                 Battles[^1].StartTime == 0) //开始战斗
             {
                 Battles[^1].StartTime = time;
+                Battles[^1].Zone = DalamudApi.DataManager.GetExcelSheet<TerritoryType>()
+                    .GetRow(DalamudApi.ClientState.TerritoryType).PlaceName.Value.Name;
                 SearchForPet();
                 PluginUi.choosed = Battles.Count - 1;
             }
@@ -251,11 +268,11 @@ namespace CEHelper
             //PluginLog.Log(opCode.ToString("X"));
             var (source,actionId,damage) = opCode switch
             {
-                0x6E => Single(dataPtr, targetActorId),
-                0x1D8 => DOT(dataPtr,targetActorId),
-                0x3C0 => AOE(dataPtr, targetActorId, 8),
-                0x0D2 => AOE(dataPtr, targetActorId, 16),
-                0x242 => Spawn(dataPtr, targetActorId),
+                0x032E => Effect(dataPtr, targetActorId),           //Effect
+                0x00CA => ActorControl(dataPtr,targetActorId),         //ActorControl
+                0x20D => AOE(dataPtr, targetActorId, 8),      //AOE8
+                0x0DF => AOE(dataPtr, targetActorId, 16),       //AOE16
+                0x3B4 => Spawn(dataPtr, targetActorId),             //NPCSpawn
                 _ => (0xFFFFFFFF,(uint)0,0)
             };
             if (source == 0xFFFFFFFF || actionId == 0 || damage == 0) return;
@@ -266,6 +283,8 @@ namespace CEHelper
                         0, new Dictionary<string, Dictionary<uint, long>>()));
                     if (Battles.Count > 3) Battles.RemoveAt(0);
                     Battles[^1].StartTime = time;
+                    Battles[^1].Zone = DalamudApi.DataManager.GetExcelSheet<TerritoryType>()
+                        .GetRow(DalamudApi.ClientState.TerritoryType).PlaceName.Value.Name;
                     SearchForPet();
                     PluginUi.choosed = Battles.Count - 1;
                 }
@@ -294,8 +313,8 @@ namespace CEHelper
             DalamudApi.Dispose();
         }
 
-        [Command("/cehelper")]
-        [HelpMessage("Show config window of CEHelper.")]
+        //[Command("/cehelper")]
+        //[HelpMessage("Show config window of CEHelper.")]
         private void ToggleConfig(string command, string args)
         {
             PluginUi.DrawConfigUI();
