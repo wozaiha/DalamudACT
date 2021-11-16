@@ -21,6 +21,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ACT.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="..\Data\samplePlugin.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

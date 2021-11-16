@@ -12,30 +12,41 @@ using Lumina.Excel.GeneratedSheets;
 
 namespace ACT
 {
-    public sealed class ACT : IDalamudPlugin
+    public class ACT : IDalamudPlugin
     {
         public string Name => "ACT";
 
         public Configuration Configuration;
         private PluginUI PluginUi;
         private Dictionary<uint, uint> pet = new();
-
+        private Dictionary<uint, TextureWrap?> Icon = new();
         public class ACTBattle
         {
-            public ACTBattle(long time1, long time2, Dictionary<string, Dictionary<uint, long>> damage)
+            public ACTBattle(long time1, long time2)
             {
                 StartTime = time1;
                 EndTime = time2;
-                Damage = damage;
-                Icon = new Dictionary<string, TextureWrap?>();
-                Zone = "";
+                Level = DalamudApi.ClientState.LocalPlayer?.Level;
+                //PotDictionary = new Dictionary<uint, float>();
             }
 
             public long StartTime;
             public long EndTime;
             public string? Zone;
-            public Dictionary<string, Dictionary<uint, long>> Damage;
-            public Dictionary<string, TextureWrap?>? Icon;
+            public int? Level;
+            public Dictionary<uint, string> Name;
+            public Dictionary<uint, Dictionary<uint, long>> Damage;
+            public Dictionary<uint, uint> JobId;
+            public Dictionary<uint, float> PotDictionary;
+            public Dictionary<uint, long> PotDamage;
+            public Dictionary<uint, uint> Swing;
+
+            public Dictionary<ulong, uint> PlayerDotTicks;//from+buffid,tick
+
+            //public Dictionary<ulong,uint> AllDots;      
+            public Dictionary<ulong,uint> ActiveDots;   //target+buffid,from
+            private long TotalDot;
+            private long TotalDotPot;
 
             public long Duration()
             {
@@ -45,6 +56,33 @@ namespace ACT
                     _ => EndTime - StartTime //战斗结束
                 };
             }
+
+            public bool ContainPlayer(uint ObjectId)
+            {
+                return Name.ContainsKey(ObjectId);
+            }
+
+            public void AddEvent(int kind, uint from, uint target, uint id, long damage)
+            {
+                if (from == 0xE0000000 && kind == 3)//DOT damage
+                {
+                    TotalDot += damage;
+                    foreach (var (dot,player) in ActiveDots)
+                    {
+                        if (dot >> 16 != target) continue;
+                        TotalDotPot += Potency.DotPot[(uint)dot & 0xFFFF];
+                        var playerbuffid = dot & 0xFFFF + player << 16;
+                        if (PlayerDotTicks.ContainsKey(playerbuffid)) PlayerDotTicks[playerbuffid] += 1;
+                        else PlayerDotTicks.Add(playerbuffid,1);
+                    }
+                }
+
+                if (from != 0xE0000000 && kind == 3) //伤害
+                {
+
+                }
+            }
+
         }
 
         public List<ACTBattle> Battles = new();
@@ -54,7 +92,12 @@ namespace ACT
         {
             DalamudApi.Initialize(this, pluginInterface);
 
-
+            for (uint i = 62100; i < 62141; i++)
+            {
+                Icon.Add(i-62100,DalamudApi.DataManager.GetImGuiTextureHqIcon(i));
+            }
+            Icon.Add(99,DalamudApi.DataManager.GetImGuiTextureHqIcon(103)); //LB
+            
             Configuration = DalamudApi.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(DalamudApi.PluginInterface);
 
@@ -139,7 +182,7 @@ namespace ACT
         private (uint,uint,long) ActorControl(IntPtr ptr,uint target)
         {
             var dat = Marshal.PtrToStructure<ActorControlStruct>(ptr);
-            //PluginLog.Information($"{target:X}:{dat.category}:{dat.padding:D5}:{dat.param1}:{dat.param2}:{dat.param3}:{dat.param4:X}:{dat.padding1:X}");
+            PluginLog.Information($"ActorControl {target:X}:{dat.category}:{dat.padding:D5}:{dat.param1}:{dat.param2}:{dat.param3}:{dat.param4:X}:{dat.padding1:X}");
             if (dat.category != 23 || dat.param2 != 3) return (0xE000_0000, 0xE000_0000, 0);
             long damage = 0;
             
@@ -185,19 +228,13 @@ namespace ACT
             //PluginLog.Information("END");
 
             var targetID = (uint)Marshal.ReadInt32(ptr, 112);
-            var actionID = (uint)Marshal.ReadInt32(ptr, 8);
+            var actionID = (uint)Marshal.ReadInt32(ptr, 8); 
             var effecttype = Marshal.ReadByte(ptr, 42); //03=伤害 0xE=BUFF 04=治疗
             var direct = Marshal.ReadByte(ptr, 43); // 1=暴击  2=直击  3=直爆
-            var mask = (ushort)Marshal.ReadInt16(ptr, 45);
-            var damage = (Marshal.ReadByte(ptr, 46) << 16) + (ushort)Marshal.ReadInt16(ptr, 48);
-            var mask2 = (ushort)Marshal.ReadByte(ptr, 50);
+            var damage = (Marshal.ReadInt16(ptr, 45) << 16) + (ushort)Marshal.ReadInt16(ptr, 48);
+            PluginLog.Information($"Effect@{actionID}:{effecttype:X}:{direct}:{damage}:{targetID:X}");
+                                           //{rotateId}      {0xE}        {???} {buffId}  {targetId}:
             if (effecttype != 3) damage = 0;
-            if (actionID > 10)
-            {
-                if ((mask>>5 & 0x3) != 0) PluginLog.Information("True");
-                PluginLog.Information($"@{actionID}:{effecttype:X}:{direct}:{damage}:{targetID:X}:{mask:X2}:{mask2:X2}");
-            }
-
             return (target,actionID,(long)damage);
         }
 
@@ -214,7 +251,7 @@ namespace ACT
                 {
                     if (pet.ContainsKey(owner)) pet[owner] = obj.ObjectId;
                     else pet.Add(obj.ObjectId, owner);
-                    PluginLog.Information($"{owner:X} {obj.ObjectId:X}");
+                    //PluginLog.Information($"{owner:X} {obj.ObjectId:X}");
                 }
             }
         }
@@ -232,11 +269,6 @@ namespace ACT
             else
             {   //新建
                 Battles[^1].Damage.Add(name, new Dictionary<uint, long>{ { action, value } });
-                if (iconid != 0)
-                {
-                    var icon = DalamudApi.DataManager.GetImGuiTextureHqIcon(iconid);
-                    Battles[^1].Icon.Add(name,icon);
-                }
                 
                 Battles[^1].Damage[name].Add(0,value);
             }

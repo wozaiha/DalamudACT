@@ -250,32 +250,32 @@ namespace ACT
             }
 
             ImGui.SameLine(ImGui.GetWindowSize().X - 50);
-            if (ImGui.Button("Reset"))
-            {
-                choosed = 0;
-                _plugin.Battles.Clear();
-                _plugin.Battles.Add(new ACT.ACTBattle(0,
-                    0, new Dictionary<string, Dictionary<uint, long>>()));
-            }
+            //if (ImGui.Button("Reset"))
+            //{
+            //    choosed = 0;
+            //    _plugin.Battles.Clear();
+            //    _plugin.Battles.Add(new ACT.ACTBattle(0,
+            //        0, new Dictionary<string, Dictionary<uint, long>>()));
+            //}
 
             ImGui.EndMenuBar();
             long total = 0;
-            var damage = _plugin.Battles[choosed].Damage.ToList();
-            damage.Sort((pair1, pair2) => pair2.Value[0].CompareTo(pair1.Value[0]));
-            foreach (var (key, value) in damage)
-            {
-                if (_plugin.Battles[choosed].Icon.TryGetValue(key, out var icon))
-                {
-                    ImGui.Image(icon.ImGuiHandle, new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
-                    ImGui.SameLine();
-                }
+            //var damage = _plugin.Battles[choosed].Damages.ToList();
+            //damage.Sort((pair1, pair2) => pair2.Value[0].CompareTo(pair1.Value[0]));
+            //foreach (var (key, value) in damage)
+            //{
+            //    //if (_plugin.Icon.TryGetValue(key, out var icon))
+            //    //{
+            //    //    ImGui.Image(icon.ImGuiHandle, new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+            //    //    ImGui.SameLine();
+            //    //}
 
-                ImGui.Text(key);
-                ImGui.SameLine(120);
-                ImGui.Text(((float)value[0] / seconds).ToString("0.0"));
-                if (ImGui.IsItemHovered()) DrawDetails(value, seconds);
-                total += value[0];
-            }
+            //    //ImGui.Text(key);
+            //    ImGui.SameLine(120);
+            //    ImGui.Text(((float)value[0] / seconds).ToString("0.0"));
+            //    if (ImGui.IsItemHovered()) DrawDetails(value, seconds);
+            //    total += value[0];
+            //}
 
             ImGui.Text("总计");
             ImGui.SameLine(120);
