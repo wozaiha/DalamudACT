@@ -7,8 +7,11 @@ using System.Threading.Tasks;
 using ACT.Util;
 using Dalamud.Game.ClientState.Fates;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Logging;
 using ImGuiNET;
+using ImGuiScene;
 using Lumina.Excel;
+using Lumina.Excel.GeneratedSheets;
 using Action = Lumina.Excel.GeneratedSheets.Action;
 
 namespace ACT
@@ -19,45 +22,37 @@ namespace ACT
 
         private bool Visible;
         private ACT _plugin;
-        private Dictionary<uint, Vector2> fateRotation = new();
-        public int choosed = 0;
-        private ExcelSheet<Action> sheet;
-
-        private static unsafe ref float HRotation => ref *(float*)(Marshal.ReadIntPtr(
-            DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? 45 33 C0 33 D2 C6 40 09 01")) + 0x130);
+        public int choosed;
+        private ExcelSheet<Action> sheet = DalamudApi.DataManager.GetExcelSheet<Action>();
+        public static Dictionary<uint, TextureWrap?> Icon = new ();
+        private ExcelSheet<Status> buffSheet = DalamudApi.DataManager.GetExcelSheet<Status>();
+        public static Dictionary<uint, TextureWrap?> BuffIcon = new ();
+        private Dictionary<uint, float> DotDictionary;
 
         public PluginUI(ACT p)
         {
             _plugin = p;
             config = p.Configuration;
-            sheet = DalamudApi.DataManager.GetExcelSheet<Action>();
             DalamudApi.PluginInterface.UiBuilder.Draw += Draw;
             DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
-            DalamudApi.PluginInterface.UiBuilder.Draw += DrawACT;
         }
 
         public void Dispose()
         {
             DalamudApi.PluginInterface.UiBuilder.Draw -= Draw;
             DalamudApi.PluginInterface.UiBuilder.OpenConfigUi -= DrawConfigUI;
-            DalamudApi.PluginInterface.UiBuilder.Draw -= DrawACT;
-        }
 
-
-        private async void UpdateRotate()
-        {
-            await Task.Run(() =>
+            foreach (var (_,texture) in Icon)
             {
-                foreach (var fate in DalamudApi.FateTable)
-                {
-                    var rot = (fate.Position - DalamudApi.ClientState.LocalPlayer.Position).ToVector2().Normalize()
-                        .Rotate(-HRotation);
+                texture?.Dispose();
+            }
 
-                    if (fateRotation.ContainsKey(fate.FateId)) fateRotation[fate.FateId] = rot;
-                    else fateRotation.Add(fate.FateId, rot);
-                }
-            });
+            foreach (var (_,texture) in BuffIcon)
+            {
+                texture?.Dispose();
+            }
         }
+
 
         public void DrawConfigUI()
         {
@@ -67,7 +62,8 @@ namespace ACT
         private void Draw()
         {
             DrawConfig();
-            //DrawCE();
+            DrawACT();
+            OnBuildUi_Debug();
         }
 
         private void DrawConfig()
@@ -101,118 +97,45 @@ namespace ACT
 
             //ImGui.End();
         }
-
-
-        private int FateLevel(Fate fate)
-        {
-            if (fate.FateId < 1717) return -1;
-            if (fate.FateId < 1725) return 0;
-            if (fate.FateId < 1733) return 1;
-            if (fate.FateId < 1743) return 2;
-            return -1;
-        }
-
-        //private void DrawCE()
-        //{
-        //    if (!config.Enabled) return;
-        //    //if (DalamudApi.ClientState.TerritoryType != 975) return;
-
-        //    const ImGuiWindowFlags windowFlags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoResize |
-        //                                         ImGuiWindowFlags.AlwaysAutoResize |
-        //                                         ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoInputs |
-        //                                         ImGuiWindowFlags.NoNav |
-        //                                         ImGuiWindowFlags.NoBringToFrontOnFocus |
-        //                                         ImGuiWindowFlags.NoSavedSettings;
-
-        //    ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-        //    ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 2);
-
-        //    var pos = config.WindowPos;
-
-        //    //float ConvertRawPositionToMapCoordinate(int pos, float scale)
-        //    //{
-        //    //	float num1 = scale / 100f;
-        //    //	float num2 = (float)((double)pos * (double)num1 / 1000.0);
-        //    //	return (float)(41.0 / (double)num1 * (((double)num2 + 1024.0) / 2048.0) + 1.0);
-        //    //}
-
-        //    if (Task.CurrentId == null) UpdateRotate();
-        //    foreach (var fate in DalamudApi.FateTable)
-        //    {
-        //        if (config.LevelEnabled)
-        //            if (FateLevel(fate) != config.FateLevel)
-        //                continue;
-
-        //        var color = fate.State switch
-        //        {
-        //            FateState.Preparation => ImGuiColors.DPSRed,
-        //            (FateState)6 => ImGuiColors.DPSRed,
-        //            FateState.Ended => ImGuiColors.DalamudOrange,
-        //            FateState.WaitingForEnd => ImGuiColors.DalamudOrange,
-        //            _ => ImGuiColors.DalamudWhite
-        //        };
-
-        //        ImGui.PushStyleColor(ImGuiCol.Border, color);
-        //        ImGui.SetNextWindowPos(pos);
-        //        ImGui.SetNextWindowSizeConstraints(
-        //            new Vector2(150, float.MinValue),
-        //            new Vector2(150, float.MaxValue));
-
-        //        if (ImGui.Begin($"{fate.Name}", windowFlags))
-        //        {
-        //            //Vector3 fatePos = new Vector3(fate.Position.X, fate.Position.Z, fate.Position.Y);
-        //            var fatePos = fate.Position;
-        //            var arrpos = ImGui.GetWindowPos() /*+ ImGui.GetCursorPos()*/ +
-        //                         new Vector2(ImGui.GetTextLineHeight() + 5, ImGui.GetTextLineHeight());
-        //            ImGui.GetWindowDrawList().DrawArrow(arrpos, ImGui.GetTextLineHeightWithSpacing() * 0.500f,
-        //                ImGui.ColorConvertFloat4ToU32(color),
-        //                fateRotation.ContainsKey(fate.FateId) ? fateRotation[fate.FateId] : Vector2.Zero, 5);
-        //            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetTextLineHeight() +
-        //                                ImGui.GetTextLineHeightWithSpacing());
-        //            ImGui.TextColored(color, $"{fate.Name}");
-        //            ImGui.Separator();
-
-        //            var dis = fatePos.Distance2D(DalamudApi.ClientState.LocalPlayer.Position);
-        //            ImGui.TextUnformatted($"{dis:0.0}");
-        //            ImGui.SameLine(70);
-        //            var time = fate.TimeRemaining;
-        //            if (color != ImGuiColors.DPSRed)
-        //            {
-        //                ImGui.Text($"{time / 60:00}:{time % 60:00}");
-        //                ImGui.SameLine(120);
-        //                ImGui.Text($"{fate.Progress}%%");
-        //            }
-        //            else
-        //            {
-        //                ImGui.TextColored(color, "准备中");
-        //            }
-
-        //            pos += new Vector2(0, ImGui.GetWindowSize().Y);
-
-        //            ImGui.End();
-        //        }
-
-        //        ImGui.PopStyleColor();
-        //    }
-
-        //    ImGui.PopStyleVar(2);
-        //}
-
-        private void DrawDetails(Dictionary<uint, long> Damage, long time)
+        
+        private void DrawDetails(uint actor, long time, float totalDotSim)
         {
             ImGui.BeginTooltip();
-            var damage = Damage.ToList();
+            var damage = _plugin.Battles[choosed].DamageDic[actor].Damages.ToList();
             damage.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
-
             foreach (var (action, dmg) in damage)
             {
                 if (action == 0 || sheet.GetRow(action) == null) continue;
-                //ImGui.Image(DalamudApi.DataManager.GetImGuiTextureHqIcon(sheet.GetRow(action)!.Icon)!.ImGuiHandle,
-                    //new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
-                //ImGui.SameLine();
+                if (Icon.TryGetValue(action,out var icon))
+                {
+                    ImGui.Image(icon.ImGuiHandle,
+                        new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+                }
+                ImGui.SameLine(30);
                 ImGui.Text(sheet.GetRow(action)!.Name);
                 ImGui.SameLine(120);
                 ImGui.Text(((float)dmg / time).ToString("F1"));
+            }
+            ImGui.Separator();
+
+            if (!float.IsPositiveInfinity(totalDotSim) && totalDotSim != 0)
+            {
+                foreach (var (active,potency) in _plugin.Battles[choosed].PlayerDotPotency)
+                {
+                    var dot = ACT.ACTBattle.ActiveToDot(active);
+                    if (dot.Source == actor)
+                    {
+                        if (!BuffIcon.ContainsKey(dot.BuffId))
+                            BuffIcon.TryAdd(dot.BuffId,
+                                DalamudApi.DataManager.GetImGuiTextureHqIcon(buffSheet.GetRow(dot.BuffId)!.Icon));
+                        ImGui.Image(BuffIcon[dot.BuffId]!.ImGuiHandle,
+                            new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()*1.2f));
+                        ImGui.SameLine(30);
+                        ImGui.Text(buffSheet.GetRow(dot.BuffId)!.Name);
+                        ImGui.SameLine(120);
+                        ImGui.Text((_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(dot.Source) * potency /totalDotSim / time).ToString("F1"));
+                    }
+                }
             }
 
             ImGui.EndTooltip();
@@ -222,6 +145,7 @@ namespace ACT
         {
             if (_plugin.Battles.Count < 1) return;
             ImGui.Begin("Damage", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar);
+
             ImGui.BeginMenuBar();
             var items = new[] { "", "", "", "" };
             for (var i = 0; i < _plugin.Battles.Count - 1; i++)
@@ -231,8 +155,6 @@ namespace ACT
             items[_plugin.Battles.Count - 1] = $"当前 {_plugin.Battles[_plugin.Battles.Count - 1].Zone}";
             ImGui.SetNextItemWidth(160);
             ImGui.Combo("##battles", ref choosed, items, _plugin.Battles.Count);
-
-
             if (DalamudApi.ClientState.LocalPlayer != null &&
                 (DalamudApi.ClientState.LocalPlayer.StatusFlags & StatusFlags.InCombat) != 0 &&
                 _plugin.Battles[^1].StartTime != 0)
@@ -250,37 +172,179 @@ namespace ACT
             }
 
             ImGui.SameLine(ImGui.GetWindowSize().X - 50);
-            //if (ImGui.Button("Reset"))
-            //{
-            //    choosed = 0;
-            //    _plugin.Battles.Clear();
-            //    _plugin.Battles.Add(new ACT.ACTBattle(0,
-            //        0, new Dictionary<string, Dictionary<uint, long>>()));
-            //}
-
+            if (ImGui.Button("Reset"))
+            {
+                choosed = 0;
+                _plugin.Battles.Clear();
+                _plugin.Battles.Add(new ACT.ACTBattle(0,0));
+            }
             ImGui.EndMenuBar();
+
+
             long total = 0;
-            //var damage = _plugin.Battles[choosed].Damages.ToList();
-            //damage.Sort((pair1, pair2) => pair2.Value[0].CompareTo(pair1.Value[0]));
-            //foreach (var (key, value) in damage)
-            //{
-            //    //if (_plugin.Icon.TryGetValue(key, out var icon))
-            //    //{
-            //    //    ImGui.Image(icon.ImGuiHandle, new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
-            //    //    ImGui.SameLine();
-            //    //}
+            float totaldotSim = 0f;  
+            DotDictionary = new Dictionary<uint, float>();
+            List<(uint,long)> dmgList = new();
+            //PluginLog.Information($"{_plugin.Battles[^1].Name.Count}");
+            foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
+            {
+                var dot = ACT.ACTBattle.ActiveToDot(active);
+                var dmg = _plugin.Battles[choosed].PDD(dot.Source) * potency;
+                totaldotSim += dmg;
+                if (DotDictionary.ContainsKey(dot.Source)) DotDictionary[dot.Source] += dmg;
+                else DotDictionary.Add(dot.Source,dmg);
+            }
 
-            //    //ImGui.Text(key);
-            //    ImGui.SameLine(120);
-            //    ImGui.Text(((float)value[0] / seconds).ToString("0.0"));
-            //    if (ImGui.IsItemHovered()) DrawDetails(value, seconds);
-            //    total += value[0];
-            //}
+            foreach (var (actor, damage) in _plugin.Battles[choosed].DamageDic)
+            {
+                if (!float.IsPositiveInfinity(totaldotSim) && (totaldotSim != 0) &&
+                    (DotDictionary.ContainsKey(actor)) && (_plugin.Battles[choosed].Level >= 60) && DotDictionary.TryGetValue(actor, out var dotDamage))
+                {
+                    dmgList.Add((actor, damage.Damages[0] + (long)dotDamage));
+                }
+                else dmgList.Add((actor, damage.Damages[0]));
+            }
+                
 
+            dmgList.Sort((pair1, pair2) => (pair2.Item2).CompareTo(pair1.Item2));
+            foreach (var (actor, value) in dmgList)
+            {
+                if (_plugin.Icon.TryGetValue(_plugin.Battles[choosed].DamageDic[actor].JobId, out var icon))
+                {
+                    ImGui.Image(icon.ImGuiHandle, new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+                    ImGui.SameLine();
+                }
+
+                ImGui.Text(_plugin.Battles[choosed].Name[actor]);
+                ImGui.SameLine(120);
+                ImGui.Text(((float)value / seconds).ToString("0.0"));
+                if (ImGui.IsItemHovered()) DrawDetails(actor, seconds, totaldotSim);
+                total += value;
+            }
+            if (_plugin.Battles[choosed].TotalDotDamage != 0 && float.IsPositiveInfinity(totaldotSim) || _plugin.Battles[choosed].Level <60)
+            {
+                ImGui.Text("DOT");
+                ImGui.SameLine(120);
+                ImGui.Text(((float)_plugin.Battles[choosed].TotalDotDamage / _plugin.Battles[choosed].Duration()).ToString("0.0"));
+                total += _plugin.Battles[choosed].TotalDotDamage;
+            }
+            
             ImGui.Text("总计");
             ImGui.SameLine(120);
             ImGui.Text(((float)total / seconds).ToString("0.0"));
             ImGui.End();
+        }
+
+
+
+        private void OnBuildUi_Debug()
+        {
+            var open = false;
+            if (ImGui.Begin("Debug",ref open))
+            {
+                ImGui.Text($"Total Dot Damage:{_plugin.Battles[choosed].TotalDotDamage}");
+                
+                if (ImGui.BeginTable("Pot",7))
+                {
+                        
+                    var headers = new string[] { "Name","ActorId","PotSkill", "SkillPotency", "Speed", "Special", "PDD"};
+                    foreach (var t in headers)
+                    {
+                        ImGui.TableSetupColumn(t);
+                    }
+
+                    ImGui.TableHeadersRow();
+
+                    foreach (var (actor,damage) in _plugin.Battles[choosed].DamageDic)
+                    {
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{_plugin.Battles[choosed].Name[actor]}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{actor:X}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{damage.PotSkill}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{damage.SkillPotency}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{damage.SS}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{damage.Special}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{_plugin.Battles[choosed].PDD(actor)}");
+                        
+                    }
+                    
+                }
+                ImGui.EndTable();
+                ImGui.Separator();
+
+                if (ImGui.BeginTable("Dots",6))
+                {
+                    var headers = new string[] { "BuffId", "Source", "Target", "Potency" ,"预测DPS","分解DPS"};
+                    
+                    foreach (var t in headers)
+                    {
+                        ImGui.TableSetupColumn(t);
+                    }
+
+                    ImGui.TableHeadersRow();
+                    var total = 0f;
+                    foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
+                    {
+                        var dot = ACT.ACTBattle.ActiveToDot(active);
+                        total += _plugin.Battles[choosed].PDD(dot.Source) * potency;
+                        
+                    }
+
+                    foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
+                    {
+                        ImGui.TableNextColumn();
+                        var dot = ACT.ACTBattle.ActiveToDot(active);
+                        ImGui.Text($"{dot.BuffId}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{dot.Source:X}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{dot.Target:X}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{potency}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{_plugin.Battles[choosed].PDD(dot.Source) * potency / _plugin.Battles[choosed].Duration()}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(dot.Source) * potency / total / _plugin.Battles[choosed].Duration()}");
+                        
+                    }
+                }
+                ImGui.EndTable();
+                ImGui.Separator();
+
+                if (ImGui.BeginTable("Active Dots",3))
+                {
+                    var headers = new string[] { "BuffId", "From who", "To who" };
+                    
+                    foreach (var t in headers)
+                    {
+                        ImGui.TableSetupColumn(t);
+                    }
+
+                    ImGui.TableHeadersRow();
+
+                    foreach (var active in _plugin.Battles[choosed].ActiveDots)
+                    {
+                        var dot = ACT.ACTBattle.ActiveToDot(active);
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{dot.BuffId}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{dot.Source:X}");
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{dot.Target:X}");
+                    }
+                }
+                ImGui.EndTable();
+                ImGui.Separator();
+
+            }
+            ImGui.End();
+            
         }
     }
 }

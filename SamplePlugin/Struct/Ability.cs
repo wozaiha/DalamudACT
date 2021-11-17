@@ -10,7 +10,7 @@ namespace ACT.Struct
 
         [FieldOffset(0x0)]ulong animationTargetId; // who the animation targets
 
-        [FieldOffset(0x8)]uint actionId; // what the casting player casts, shown in battle log/ui
+        [FieldOffset(0x8)]public uint actionId; // what the casting player casts, shown in battle log/ui
         [FieldOffset(0xC)]uint globalSequence; // seems to only increment on retail?
 
         [FieldOffset(0x10)]float animationLockTime; // maybe? doesn't seem to do anything
@@ -26,8 +26,8 @@ namespace ACT.Struct
         [FieldOffset(0x21)]byte effectCount; // ignores effects if 0, otherwise parses all of them
         [FieldOffset(0x22)]ushort padding0;
 
-        [FieldOffset(0x24)]public uint padding1;
-        [FieldOffset(0x28)]public ushort padding2;    
+        [FieldOffset(0x24)]uint padding1;
+        [FieldOffset(0x28)]ushort padding2;    
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 0x8)]

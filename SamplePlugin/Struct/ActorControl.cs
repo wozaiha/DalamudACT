@@ -2,7 +2,7 @@
 
 namespace ACT.Struct
 {
-    public class ActorControl
+    public struct ActorControl
     {
         [StructLayout(LayoutKind.Explicit, Size = 24)]
         public struct  ActorControlStruct
