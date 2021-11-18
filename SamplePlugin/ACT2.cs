@@ -310,15 +310,15 @@ namespace ACT
                     Battles[^1].AddSS(source,data.cast_time,data.action_id); 
                 }
 
-                if (data.action_id == 3577) //火3 天语
-                {
-                    Battles[^1].DamageDic[source].Special = DalamudApi.ClientState.LocalPlayer?.Level switch
-                    {
-                        >=78 => 1.15f,
-                        >=56 => 1.10f,
-                        _ => 1f
-                    };
-                }
+                //if (data.action_id == 3577) //火3 天语
+                //{
+                //    Battles[^1].DamageDic[source].Special = DalamudApi.ClientState.LocalPlayer?.Level switch
+                //    {
+                //        >=78 => 1.15f,
+                //        >=56 => 1.10f,
+                //        _ => 1f
+                //    };
+                //}
             }
 
             if (data.action_id == 7489) //彼岸花 回天
@@ -419,8 +419,8 @@ namespace ACT
             Configuration = DalamudApi.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(DalamudApi.PluginInterface);
 
-            terrySheet = DalamudApi.DataManager.GetExcelSheet<TerritoryType>();
-            sheet = DalamudApi.DataManager.GetExcelSheet<Action>();
+            terrySheet = DalamudApi.DataManager.GetExcelSheet<TerritoryType>()!;
+            sheet = DalamudApi.DataManager.GetExcelSheet<Action>()!;
 
             DalamudApi.GameNetwork.NetworkMessage += NetWork;
 

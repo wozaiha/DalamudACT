@@ -70,18 +70,18 @@ namespace ACT.Struct
         public fixed ulong targetId[16];
     }
 
+    public unsafe struct Ability24
+    {
+        public Header header;
+        public fixed byte enrty[24*8*8];
+        public fixed ulong targetId[24];
+    }
+
     public unsafe struct Ability32
     {
         public Header header;
-        public fixed byte enrty[32*8*8];
+        public fixed byte enrty[32*8];
         public fixed ulong targetId[32];
-    }
-
-    public unsafe struct Ability64
-    {
-        public Header header;
-        public fixed byte enrty[64*8];
-        public fixed ulong targetId[64];
     }
 
 }
