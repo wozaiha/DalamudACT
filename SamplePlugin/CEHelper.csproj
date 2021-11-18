@@ -45,42 +45,52 @@
     <Reference Include="FFXIVClientStructs">
       <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
       <Private>false</Private>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
       <Private>false</Private>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="Dalamud">
       <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
       <Private>false</Private>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="ImGui.NET">
       <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
       <Private>false</Private>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="ImGuiScene">
       <HintPath>$(DalamudLibPath)ImGuiScene.dll</HintPath>
       <Private>false</Private>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="Lumina">
       <HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
       <Private>false</Private>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="Lumina.Excel">
       <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
       <Private>false</Private>
+      <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="SharpDX">
 	    <HintPath>$(DalamudLibPath)SharpDX.dll</HintPath>
 	    <Private>false</Private>
+	    <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="SharpDX.DXGI">
 	    <HintPath>$(DalamudLibPath)SharpDX.DXGI.dll</HintPath>
 	    <Private>false</Private>
+	    <CopyLocal>False</CopyLocal>
     </Reference>
     <Reference Include="SharpDX.Mathematics">
 	    <HintPath>$(DalamudLibPath)SharpDX.Mathematics.dll</HintPath>
 	    <Private>false</Private>
+	    <CopyLocal>False</CopyLocal>
     </Reference>
 
   </ItemGroup>
