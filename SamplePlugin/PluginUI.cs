@@ -259,7 +259,7 @@ namespace ACT
                         ImGui.TableNextColumn();
                         ImGui.Text($"{actor:X}");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{damage.PotSkill}");
+                        ImGui.Text($"{sheet.GetRow(damage.PotSkill)!.Name}");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{damage.SkillPotency}");
                         ImGui.TableNextColumn();
@@ -297,9 +297,9 @@ namespace ACT
                         ImGui.TableNextColumn();
                         var buff = (uint)(active >> 32);
                         var source = (uint)(active & 0xFFFFFFFF);
-                        ImGui.Text($"{buff}");
+                        ImGui.Text($"{buffSheet.GetRow(buff)!.Name}");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{source:X}");
+                        ImGui.Text($"{_plugin.Battles[choosed].Name[source]}");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{potency}");
                         ImGui.TableNextColumn();
@@ -329,9 +329,9 @@ namespace ACT
                     {
                         var dot = ACT.ACTBattle.ActiveToDot(active);
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{dot.BuffId}");
+                        ImGui.Text($"{buffSheet.GetRow(dot.BuffId)!.Name}");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{dot.Source:X}");
+                        ImGui.Text($"{_plugin.Battles[choosed].Name[dot.Source]}");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{dot.Target:X}");
                     }
