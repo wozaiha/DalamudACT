@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using Microsoft.VisualBasic.CompilerServices;
+﻿using System.Runtime.InteropServices;
 
 namespace ACT.Struct
 {
@@ -43,7 +41,7 @@ namespace ACT.Struct
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 0x6)]
-    public struct Ender  //0x6
+    public struct Ender
     {
         [FieldOffset(0x0)]public ushort padding1;
         [FieldOffset(0x2)]public uint padding2;
@@ -54,8 +52,8 @@ namespace ACT.Struct
     public unsafe struct Ability1
     {
         public Header header;
-        public fixed byte enrty[64];
-        public ulong targetId;
+        public fixed byte enrty[1*8*8];
+        public fixed ulong targetId[1];
     }
 
     public unsafe struct Ability8

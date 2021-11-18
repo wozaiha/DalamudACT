@@ -2,12 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using ACT.Util;
-using Dalamud.Game.ClientState.Fates;
 using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Logging;
 using ImGuiNET;
 using ImGuiScene;
 using Lumina.Excel;
@@ -98,7 +93,7 @@ namespace ACT
             //ImGui.End();
         }
         
-        private void DrawDetails(uint actor, long time, float totalDotSim)
+        private void DrawDetails(uint actor, float totalDotSim)
         {
             ImGui.BeginTooltip();
             var damage = _plugin.Battles[choosed].DamageDic[actor].Damages.ToList();
@@ -114,7 +109,7 @@ namespace ACT
                 ImGui.SameLine(30);
                 ImGui.Text(sheet.GetRow(action)!.Name);
                 ImGui.SameLine(120);
-                ImGui.Text(((float)dmg / time).ToString("F1"));
+                ImGui.Text(((float)dmg / _plugin.Battles[choosed].Duration()).ToString("F1"));
             }
             ImGui.Separator();
 
@@ -122,18 +117,19 @@ namespace ACT
             {
                 foreach (var (active,potency) in _plugin.Battles[choosed].PlayerDotPotency)
                 {
-                    var dot = ACT.ACTBattle.ActiveToDot(active);
-                    if (dot.Source == actor)
+                    var buff = (uint)(active >> 32);
+                    var source = (uint)(active & 0xFFFFFFFF);
+                    if (source == actor)
                     {
-                        if (!BuffIcon.ContainsKey(dot.BuffId))
-                            BuffIcon.TryAdd(dot.BuffId,
-                                DalamudApi.DataManager.GetImGuiTextureHqIcon(buffSheet.GetRow(dot.BuffId)!.Icon));
-                        ImGui.Image(BuffIcon[dot.BuffId]!.ImGuiHandle,
+                        if (!BuffIcon.ContainsKey(buff))
+                            BuffIcon.TryAdd(buff,
+                                DalamudApi.DataManager.GetImGuiTextureHqIcon(buffSheet.GetRow(buff)!.Icon));
+                        ImGui.Image(BuffIcon[buff]!.ImGuiHandle,
                             new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()*1.2f));
                         ImGui.SameLine(30);
-                        ImGui.Text(buffSheet.GetRow(dot.BuffId)!.Name);
+                        ImGui.Text(buffSheet.GetRow(buff)!.Name);
                         ImGui.SameLine(120);
-                        ImGui.Text((_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(dot.Source) * potency /totalDotSim / time).ToString("F1"));
+                        ImGui.Text((_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(source) * potency /totalDotSim / _plugin.Battles[choosed].Duration()).ToString("F1"));
                     }
                 }
             }
@@ -188,11 +184,12 @@ namespace ACT
             //PluginLog.Information($"{_plugin.Battles[^1].Name.Count}");
             foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
             {
-                var dot = ACT.ACTBattle.ActiveToDot(active);
-                var dmg = _plugin.Battles[choosed].PDD(dot.Source) * potency;
+                var buff = (uint)(active >> 32);
+                var source = (uint)(active & 0xFFFFFFFF);
+                var dmg = _plugin.Battles[choosed].PDD(source) * potency;
                 totaldotSim += dmg;
-                if (DotDictionary.ContainsKey(dot.Source)) DotDictionary[dot.Source] += dmg;
-                else DotDictionary.Add(dot.Source,dmg);
+                if (DotDictionary.ContainsKey(source)) DotDictionary[source] += dmg;
+                else DotDictionary.Add(source,dmg);
             }
 
             foreach (var (actor, damage) in _plugin.Battles[choosed].DamageDic)
@@ -218,7 +215,7 @@ namespace ACT
                 ImGui.Text(_plugin.Battles[choosed].Name[actor]);
                 ImGui.SameLine(120);
                 ImGui.Text(((float)value / seconds).ToString("0.0"));
-                if (ImGui.IsItemHovered()) DrawDetails(actor, seconds, totaldotSim);
+                if (ImGui.IsItemHovered()) DrawDetails(actor, totaldotSim);
                 total += value;
             }
             if (_plugin.Battles[choosed].TotalDotDamage != 0 && float.IsPositiveInfinity(totaldotSim) || _plugin.Battles[choosed].Level <60)
@@ -242,7 +239,7 @@ namespace ACT
             var open = false;
             if (ImGui.Begin("Debug",ref open))
             {
-                ImGui.Text($"Total Dot Damage:{_plugin.Battles[choosed].TotalDotDamage}");
+                ImGui.Text($"Total Dot DPS:{_plugin.Battles[choosed].TotalDotDamage / _plugin.Battles[choosed].Duration()}");
                 
                 if (ImGui.BeginTable("Pot",7))
                 {
@@ -266,7 +263,7 @@ namespace ACT
                         ImGui.TableNextColumn();
                         ImGui.Text($"{damage.SkillPotency}");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{damage.SS}");
+                        ImGui.Text($"{damage.Speed}");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{damage.Special}");
                         ImGui.TableNextColumn();
@@ -278,9 +275,9 @@ namespace ACT
                 ImGui.EndTable();
                 ImGui.Separator();
 
-                if (ImGui.BeginTable("Dots",6))
+                if (ImGui.BeginTable("Dots",5))
                 {
-                    var headers = new string[] { "BuffId", "Source", "Target", "Potency" ,"预测DPS","分解DPS"};
+                    var headers = new string[] { "BuffId", "Source", "Potency" ,"预测DPS","分解DPS"};
                     
                     foreach (var t in headers)
                     {
@@ -291,35 +288,35 @@ namespace ACT
                     var total = 0f;
                     foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
                     {
-                        var dot = ACT.ACTBattle.ActiveToDot(active);
-                        total += _plugin.Battles[choosed].PDD(dot.Source) * potency;
-                        
+                        var source = (uint)(active & 0xFFFFFFFF);
+                        total += _plugin.Battles[choosed].PDD(source) * potency;
                     }
 
                     foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
                     {
                         ImGui.TableNextColumn();
-                        var dot = ACT.ACTBattle.ActiveToDot(active);
-                        ImGui.Text($"{dot.BuffId}");
+                        var buff = (uint)(active >> 32);
+                        var source = (uint)(active & 0xFFFFFFFF);
+                        ImGui.Text($"{buff}");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{dot.Source:X}");
-                        ImGui.TableNextColumn();
-                        ImGui.Text($"{dot.Target:X}");
+                        ImGui.Text($"{source:X}");
                         ImGui.TableNextColumn();
                         ImGui.Text($"{potency}");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{_plugin.Battles[choosed].PDD(dot.Source) * potency / _plugin.Battles[choosed].Duration()}");
+                        ImGui.Text($"{_plugin.Battles[choosed].PDD(source) * potency / _plugin.Battles[choosed].Duration()}");
                         ImGui.TableNextColumn();
-                        ImGui.Text($"{_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(dot.Source) * potency / total / _plugin.Battles[choosed].Duration()}");
+                        ImGui.Text($"{_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(source) * potency / total / _plugin.Battles[choosed].Duration()}");
                         
                     }
+                    ImGui.EndTable();
+                    ImGui.Text($"模拟DPS/实际DPS:{total *100 / _plugin.Battles[choosed].TotalDotDamage -100}%%");
                 }
-                ImGui.EndTable();
+                
                 ImGui.Separator();
 
                 if (ImGui.BeginTable("Active Dots",3))
                 {
-                    var headers = new string[] { "BuffId", "From who", "To who" };
+                    var headers = new string[] { "BuffId", "Source", "Target" };
                     
                     foreach (var t in headers)
                     {

@@ -49,11 +49,9 @@ namespace ACT
             {
                 public Dictionary<uint, long> Damages = new();
                 public uint PotSkill;
-                //public uint PotSwings;
                 public float SkillPotency;
-                //public float DPP;//每Pot伤害
                 public uint JobId;
-                public float SS = 1f;
+                public float Speed = 1f;
                 public float Special = 1f;
             }
 
@@ -64,18 +62,18 @@ namespace ACT
             public Dictionary<uint, string> Name = new();
             public Dictionary<uint, Damage> DamageDic = new();
 
-            public Dictionary<BigInteger, uint> PlayerDotPotency = new();
+            public Dictionary<ulong, uint> PlayerDotPotency = new();
 
             public HashSet<BigInteger> ActiveDots = new();
             public long TotalDotDamage;
 
 
 
-            public long Duration()
+            public float Duration()
             {
                 return (EndTime - StartTime) switch
                 {
-                    <= 0 => 0, //战斗中
+                    <= 0 => 0.01f, //战斗中
                     _ => EndTime - StartTime //战斗结束
                 };
             }
@@ -92,7 +90,7 @@ namespace ACT
                 DamageDic[objectId].SkillPotency = 0;
                 //DamageDic[objectId].DPP = 0;
                 DamageDic[objectId].JobId = ((Character)actor).ClassJob.Id;
-                DamageDic[objectId].SS = 1f;
+                DamageDic[objectId].Speed = 1f;
 
             }
 
@@ -108,7 +106,7 @@ namespace ACT
                     3577 => 2.8f/casttime,
                     _ =>  2.5f/casttime,
                 };
-                if (DamageDic.ContainsKey(objectId) && (DamageDic[objectId].SS > muti || DamageDic[objectId].SS == 1)) DamageDic[objectId].SS = muti;
+                if (DamageDic.ContainsKey(objectId) && (DamageDic[objectId].Speed > muti || DamageDic[objectId].Speed == 1)) DamageDic[objectId].Speed = muti;
             }
             
             public void AddEvent(int kind, uint from, uint target, uint id, long damage)
@@ -129,8 +127,9 @@ namespace ACT
                     foreach (var active in ActiveDots)
                     {
                         var dot = ActiveToDot(active);
-                        if (PlayerDotPotency.ContainsKey(active)) PlayerDotPotency[active] += Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special;
-                        else PlayerDotPotency.Add(active,Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special);
+                        var buff = ActiveToUlong(active);
+                        if (PlayerDotPotency.ContainsKey(buff)) PlayerDotPotency[buff] += Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special;
+                        else PlayerDotPotency.Add(buff,Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special);
                     }
                 }
 
@@ -182,6 +181,11 @@ namespace ACT
 
             }
 
+            public static ulong ActiveToUlong(BigInteger active)
+            {
+                return (ulong)(active >> 32);
+            }
+            
             public static Dot ActiveToDot(BigInteger active)
             {
                 return new Dot()
@@ -199,7 +203,7 @@ namespace ACT
 
             public float PDD(uint actor)
             {
-                return DamageDic[actor].Damages[DamageDic[actor].PotSkill] * DamageDic[actor].SS / DamageDic[actor].SkillPotency;
+                return DamageDic[actor].Damages[DamageDic[actor].PotSkill] * DamageDic[actor].Speed / DamageDic[actor].SkillPotency;
 
             }
 
@@ -261,24 +265,27 @@ namespace ACT
             //}
         }
 
-        private unsafe void AOE8(IntPtr ptr, uint sourceId, int length)
+        private unsafe void Ability(IntPtr ptr, uint sourceId, int length)
         {
             if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
             if (sourceId > 0x40000000) return;
-            var data = Marshal.PtrToStructure<Ability8>(ptr);
-            var effect = (EffectEntry*)data.enrty;
-            PluginLog.Debug($"-----------------------AOE{length}------------------------------");
+
+            var header = Marshal.PtrToStructure<Header>(ptr);
+            var effect = (EffectEntry*)(ptr + sizeof(Header));
+            var target = (ulong*)(ptr + sizeof(Header) + 8*sizeof(EffectEntry)*length);
+            PluginLog.Debug($"-----------------------Ability{length}------------------------------");
             for (int i = 0; i < length; i++)
             {
-                if (data.targetId[i] == 0x0) break;
-                PluginLog.Debug($"{data.targetId[i]:X}");
+                if (*target == 0x0) break;
+                //PluginLog.Debug($"{*target:X}");
                 for (int j = 0; j < 8; j++)
                 {
                     if (effect->type == 3)
                     {
                         long damage = effect->param0;
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
-                        Battles[^1].AddEvent(3,sourceId,(uint)data.targetId[i],data.header.actionId,damage);
+                        Battles[^1].AddEvent(3,sourceId,(uint)*target,header.actionId,damage);
+                        PluginLog.Debug($"{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
                     }
                     //else if (effect->type == 0xE)
                     //{
@@ -286,66 +293,11 @@ namespace ACT
                     //}
                     effect++;
                 }
-                PluginLog.Debug("------------------------END------------------------------");
+                target++;
             }
-        }
-
-        private unsafe void AOE16(IntPtr ptr, uint sourceId, int length)
-        {
-            if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
-            if (sourceId > 0x40000000) return;
-            var data = Marshal.PtrToStructure<Ability16>(ptr);
-            var effect = (EffectEntry*)data.enrty;
-            PluginLog.Debug($"-----------------------AOE{length}------------------------------");
-            for (int i = 0; i < length; i++)
-            {
-                if (data.targetId[i] == 0x0) break;
-                PluginLog.Debug($"{data.targetId[i]:X}");
-                for (int j = 0; j < 8; j++)
-                {
-                    if (effect->type == 3)
-                    {
-                        long damage = effect->param0;
-                        if (effect->param5 == 0x40) damage += effect->param4 << 16;
-                        Battles[^1].AddEvent(3,sourceId,(uint)data.targetId[i],data.header.actionId,damage);
-                    }
-                    //else if (effect->type == 0xE)
-                    //{
-                    //    Battles[^1].AddEvent(0xE,sourceId,(uint)data.targetId[i],effect->param0,0);
-                    //}
-                    effect++;
-                }
-                PluginLog.Debug("------------------------END------------------------------");
-            }
-        }
-
-        private unsafe void Effect(IntPtr ptr, uint sourceId)
-        {
-            if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
-            if (sourceId > 0x40000000) return;
-            var data = Marshal.PtrToStructure<Ability1>(ptr);
-            var effect = (EffectEntry*)data.enrty;
-            PluginLog.Debug("-----------------------ABI1------------------------------");
-            for (int i = 0; i < 8; i++)
-            {
-                PluginLog.Debug($"{effect->type:X}:{effect->param1:X}:{effect->param2:X}:{effect->param3:X}:{effect->param4:X}:{effect->param5:X}:{effect->param0:X}");
-                if (effect->type == 3)
-                {
-                    long damage = effect->param0;
-                    if (effect->param5 == 0x40) damage += effect->param4 << 16;
-                    Battles[^1].AddEvent(3,sourceId,(uint)data.targetId,data.header.actionId,damage);
-                }
-                //else if (effect->type == 0xE)
-                //{
-                //    Battles[^1].AddEvent(0xE,sourceId,(uint)data.targetId,effect->param0,0);
-                //}
-                effect ++;
-            }
-            PluginLog.Debug($"{data.targetId:X8}");
             PluginLog.Debug("------------------------END------------------------------");
-
         }
-
+        
         private void Cast(IntPtr ptr, uint source)
         {
             if (source>0x40000000) return;
@@ -430,16 +382,16 @@ namespace ACT
             switch (opCode)
             {
                 case 0x032E: 
-                    Effect(dataPtr, targetActorId);
+                    Ability(dataPtr, targetActorId,1);
+                    break;
+                case 0x20D:
+                    Ability(dataPtr, targetActorId, 8);
+                    break;
+                case 0x0DF:
+                    Ability(dataPtr, targetActorId, 16);
                     break;
                 case 0x00CA: 
                     ActorControl(dataPtr, targetActorId);
-                    break;
-                case 0x20D:
-                    AOE8(dataPtr, targetActorId, 8);
-                    break;
-                case 0x0DF:
-                    AOE16(dataPtr, targetActorId, 16);
                     break;
                 case 0x3B4:
                     Spawn(dataPtr, targetActorId);
