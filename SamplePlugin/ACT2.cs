@@ -97,11 +97,9 @@ namespace ACT
                 Name.Add(objectId,actor.Name.TextValue);
                 DamageDic.Add(objectId,new Damage());
                 DamageDic[objectId].Damages = new Dictionary<uint, long> { { 0, 0 } };
-                DamageDic[objectId].PotSkill = 0;
-                //DamageDic[objectId].PotSwings = 0;
-                DamageDic[objectId].SkillPotency = 0;
-                //DamageDic[objectId].DPP = 0;
                 DamageDic[objectId].JobId = ((Character)actor).ClassJob.Id;
+                DamageDic[objectId].PotSkill = Potency.BaseSkill[DamageDic[objectId].JobId];
+                DamageDic[objectId].SkillPotency = 0;
                 DamageDic[objectId].Speed = 1f;
 
             }
@@ -140,6 +138,7 @@ namespace ACT
                     {
                         var dot = ActiveToDot(active);
                         var buff = ActiveToUlong(active);
+                        if (!DamageDic.ContainsKey(dot.Source)) AddPlayer(dot.Source);
                         if (PlayerDotPotency.ContainsKey(buff)) PlayerDotPotency[buff] += Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special;
                         else PlayerDotPotency.Add(buff,Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special);
                     }
@@ -150,10 +149,9 @@ namespace ACT
                 {
                     if (Potency.SkillPot.TryGetValue(id, out var pot))  //基线技能
                     {
-                        if (DamageDic[from].PotSkill == 0)
+                        if (DamageDic[from].PotSkill != id)
                         {
                             DamageDic[from].PotSkill = id;
-                            //DamageDic[from].PotSwings = 1;
                             DamageDic[from].SkillPotency = pot * Potency.Muti[DamageDic[from].JobId];
                         }
                         else
@@ -175,25 +173,10 @@ namespace ACT
 
                     DamageDic[from].Damages[0] += damage;
                 }
-
-                ////BUFF up
-                //if (kind == 0xE && target > 0x40000000 && Potency.DotPot.ContainsKey(id))
-                //{
-                //    var dot = DotToActive(new Dot{ BuffId = id, Source = from, Target = target });
-                //    if (!ActiveDots.Contains(dot)) ActiveDots.Add(dot);
-                //}
                 
-                ////Buff gone
-                //if (kind == 21 && target > 0x40000000 && Potency.DotPot.ContainsKey(id))
-                //{
-                    
-                //    var dot = DotToActive(new Dot{ BuffId = id, Source = from, Target = target });
-                //    if (ActiveDots.Contains(dot)) ActiveDots.Remove(dot);
-                //}
-
             }
 
-            public static ulong ActiveToUlong(BigInteger active)
+            private static ulong ActiveToUlong(BigInteger active)
             {
                 return (ulong)(active >> 32);
             }
@@ -215,7 +198,11 @@ namespace ACT
 
             public float PDD(uint actor)
             {
-                return DamageDic[actor].Damages[DamageDic[actor].PotSkill] * DamageDic[actor].Speed / DamageDic[actor].SkillPotency;
+                if (!DamageDic[actor].Damages.TryGetValue(DamageDic[actor].PotSkill, out var dmg))
+                {
+                    dmg = 1;
+                }
+                return dmg * DamageDic[actor].Speed / DamageDic[actor].SkillPotency;
 
             }
 
@@ -241,41 +228,22 @@ namespace ACT
             }
         }
 
-        #region OPcode functions
-        
-        private unsafe void Spawn(IntPtr ptr, uint target)
+        #region OPcode & Hook functions
+        private void SearchForPet()
         {
-            var obj = (NpcSpawn*)ptr;
-            if (pet.ContainsKey(target)) pet[target] = obj->spawnerId;
-            else pet.Add(target, obj->spawnerId);
-            PluginLog.Debug($"{target:X}:{obj->bNPCName}:{obj->spawnerId:X}");
+            pet.Clear();
+            foreach (var obj in DalamudApi.ObjectTable)
+            {
+                if (obj == null) continue;
+                if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
+                var owner = ((BattleNpc)obj).OwnerId;
+
+                if (pet.ContainsKey(owner)) pet[owner] = obj.ObjectId;
+                else pet.Add(obj.ObjectId, owner);
+                //PluginLog.Information($"{owner:X} {obj.ObjectId:X}");
+                
+            }
         }
-
-        //private void ActorControl(IntPtr ptr,uint target)
-        //{
-        //    if (target < 0x40000000) return;
-            
-        //    var dat = Marshal.PtrToStructure<ActorControl.ActorControlStruct>(ptr);
-
-        //    PluginLog.Debug($"ActorControl {target:X}:{dat.category}:{dat.param1}:{dat.type}:{dat.param3}:{dat.param4:X}:");
-        //    if (dat.category == 23 && dat.type == 3)
-        //    {
-        //        if (dat.param1 != 0)
-        //        {
-        //            if (Potency.BuffToAction.TryGetValue(dat.param1, out var actionId))
-        //            {
-        //                if (dat.param4 > 0x40000000) pet.TryGetValue(dat.param4, out dat.param4);
-        //                Battles[^1].AddEvent(3, dat.param4, target, actionId, dat.param3);
-        //            }
-                        
-        //        }
-        //        else Battles[^1].AddEvent(3, 0xE000_0000, target, 0, dat.param3);
-        //    }
-        //    else if (dat.category == 21 && dat.type == 0)
-        //    {
-        //        Battles[^1].AddEvent(21, dat.param3, target, dat.param1, 0);
-        //    }
-        //}
 
         private unsafe void Ability(IntPtr ptr, uint sourceId, int length)
         {
@@ -310,27 +278,28 @@ namespace ACT
             PluginLog.Debug("------------------------END------------------------------");
         }
         
-        private void Cast(IntPtr ptr, uint source)
+        private void StartCast(uint source, IntPtr ptr)
         {
-            if (source>0x40000000) return;
+
+            if (source > 0x40000000) return;
             var data = Marshal.PtrToStructure<ActorCast>(ptr);
             PluginLog.Debug($"Cast:{data.skillType}:{data.action_id}:{data.cast_time}");
             if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
             {
                 if (Battles[^1].DamageDic.TryGetValue(source, out var damage))
                 {
-                    Battles[^1].AddSS(source,data.cast_time,data.action_id); 
+                    Battles[^1].AddSS(source, data.cast_time, data.action_id);
                 }
 
-                //if (data.action_id == 3577) //火3 天语
-                //{
-                //    Battles[^1].DamageDic[source].Special = DalamudApi.ClientState.LocalPlayer?.Level switch
-                //    {
-                //        >=78 => 1.15f,
-                //        >=56 => 1.10f,
-                //        _ => 1f
-                //    };
-                //}
+                // if (data.action_id == 3577) //火3 天语
+                // {
+                //     Battles[^1].DamageDic[source].Special = DalamudApi.ClientState.LocalPlayer?.Level switch
+                //     {
+                //         >= 78 => 1.15f,
+                //         >= 56 => 1.10f,
+                //         _ => 1f
+                //     };
+                // }
             }
 
             if (data.action_id == 7489) //彼岸花 回天
@@ -340,22 +309,62 @@ namespace ACT
                 Battles[^1].DamageDic[source].Special = actor.StatusList.Any(x => x.StatusId == 1229) ? 1.5f : 1.0f;
             }
 
+            CastHook.Original(source, ptr); 
         }
 
-        private void SearchForPet()
+        private unsafe void NpcSpawn(uint target, IntPtr ptr)
         {
-            pet.Clear();
-            foreach (var obj in DalamudApi.ObjectTable)
-            {
-                if (obj == null) continue;
-                if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
-                var owner = ((BattleNpc)obj).OwnerId;
+            var obj = (NpcSpawn*)ptr;
+            if (pet.ContainsKey(target)) pet[target] = obj->spawnerId;
+            else pet.Add(target, obj->spawnerId);
+            PluginLog.Debug($"{target:X}:{obj->bNPCName}:{obj->spawnerId:X}");
+            NpcSpawnHook.Original(target, ptr);
+        }
 
-                if (pet.ContainsKey(owner)) pet[owner] = obj.ObjectId;
-                    else pet.Add(obj.ObjectId, owner);
-                    //PluginLog.Information($"{owner:X} {obj.ObjectId:X}");
-                
+        private void ReceiveActorControlSelf(uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10)
+        {
+            ActorControlSelfHook.Original(entityId, id, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
+            if (entityId < 0x40000000) return;
+            if (entityId <= 0 || id != 23) return;
+            PluginLog.Debug($"{entityId:X}:{id}:{arg0}:{arg1}:{arg2}:{arg3:X}:");
+            if (arg0 != 0)
+            {
+                if (Potency.BuffToAction.TryGetValue(arg0, out var actionId))
+                {
+                    if (arg3 > 0x40000000) pet.TryGetValue(arg3, out arg3);
+                    Battles[^1].AddEvent(3, arg3, entityId, actionId, arg2);
+                }
+
             }
+            else Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg2);
+        }
+
+        private unsafe void ReceiveAbilityEffect(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail)
+        {
+            var targetCount = *(byte*)(effectHeader + 0x21);
+            switch (targetCount)
+            {
+                case <=8 and >1:
+                    Ability(effectHeader, (uint)sourceId,8);
+                    break;
+                case >8 and<=16:
+                    Ability(effectHeader, (uint)sourceId, 16);
+                    break;
+                case >16 and<=24:
+                    Ability(effectHeader, (uint)sourceId, 24);
+                    break;
+                case >24 and<=32:
+                    Ability(effectHeader, (uint)sourceId, 32);
+                    break;
+            }
+
+            ReceivAblityHook.Original(sourceId,sourceCharacter,pos,effectHeader,effectArray,effectTrail);
+        }
+
+        private void Effect(uint sourceId, IntPtr sourceCharacter)
+        {
+            Ability(sourceCharacter, sourceId, 1);
+            EffectEffectHook.Original(sourceId,sourceCharacter);
         }
 
         #endregion
@@ -433,104 +442,30 @@ namespace ACT
 
             terrySheet = DalamudApi.DataManager.GetExcelSheet<TerritoryType>()!;
             sheet = DalamudApi.DataManager.GetExcelSheet<Action>()!;
-
-            EffectEffectHook = new Hook<EffectDelegate>(DalamudApi.SigScanner.ScanText("48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
-            EffectEffectHook.Enable();
-            ReceivAblityHook = new Hook<ReceiveAbiltyDelegate>(DalamudApi.SigScanner.ScanText("4C 89 44 24 18 53 56 57 41 54 41 57 48 81 EC ?? 00 00 00 8B F9"), ReceiveAbiltyEffect);
-            ReceivAblityHook.Enable();
-            ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveAbiltyEffect);
-            ActorControlSelfHook.Enable();
-            NpcSpawnHook= new Hook<NpcSpawnDelegate>(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 2D ?? ?? ?? ??"), NpcSpawnChange);
-            NpcSpawnHook.Enable();
-            CastHook= new Hook<CastDelegate>(DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), ReceiveCast);
-            CastHook.Enable();
+            {
+                EffectEffectHook = new Hook<EffectDelegate>(
+                    DalamudApi.SigScanner.ScanText(
+                        "48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
+                EffectEffectHook.Enable();
+                ReceivAblityHook = new Hook<ReceiveAbiltyDelegate>(
+                    DalamudApi.SigScanner.ScanText("4C 89 44 24 18 53 56 57 41 54 41 57 48 81 EC ?? 00 00 00 8B F9"),
+                    ReceiveAbilityEffect);
+                ReceivAblityHook.Enable();
+                ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(
+                    DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
+                ActorControlSelfHook.Enable();
+                NpcSpawnHook = new Hook<NpcSpawnDelegate>(
+                    DalamudApi.SigScanner.ScanText(
+                        "E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 2D ?? ?? ?? ??"),
+                    NpcSpawn);
+                NpcSpawnHook.Enable();
+                CastHook = new Hook<CastDelegate>(
+                    DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), StartCast);
+                CastHook.Enable();
+            }
             DalamudApi.GameNetwork.NetworkMessage += NetWork;
 
             PluginUi = new PluginUI(this);
-        }
-
-        private void ReceiveCast(uint source, IntPtr ptr)
-        {
-
-            if (source > 0x40000000) return;
-            var data = Marshal.PtrToStructure<ActorCast>(ptr);
-            PluginLog.Debug($"Cast:{data.skillType}:{data.action_id}:{data.cast_time}");
-            if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
-            {
-                if (Battles[^1].DamageDic.TryGetValue(source, out var damage))
-                {
-                    Battles[^1].AddSS(source, data.cast_time, data.action_id);
-                }
-
-                // if (data.action_id == 3577) //火3 天语
-                // {
-                //     Battles[^1].DamageDic[source].Special = DalamudApi.ClientState.LocalPlayer?.Level switch
-                //     {
-                //         >= 78 => 1.15f,
-                //         >= 56 => 1.10f,
-                //         _ => 1f
-                //     };
-                // }
-            }
-
-            if (data.action_id == 7489) //彼岸花 回天
-            {
-                var actor = (PlayerCharacter)DalamudApi.ObjectTable.First(x =>
-                    x.ObjectId == source && x.ObjectKind == ObjectKind.Player);
-                Battles[^1].DamageDic[source].Special = actor.StatusList.Any(x => x.StatusId == 1229) ? 1.5f : 1.0f;
-            }
-
-            CastHook.Original(source, ptr); 
-        }
-
-        private unsafe void NpcSpawnChange(uint target, IntPtr ptr)
-        {
-            var obj = (NpcSpawn*)ptr;
-            if (pet.ContainsKey(target)) pet[target] = obj->spawnerId;
-            else pet.Add(target, obj->spawnerId);
-            PluginLog.Debug($"{target:X}:{obj->bNPCName}:{obj->spawnerId:X}");
-            NpcSpawnHook.Original(target, ptr);
-        }
-
-        private void ReceiveAbiltyEffect(uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10)
-        {
-            ActorControlSelfHook.Original(entityId, id, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
-            if (entityId < 0x40000000) return;
-
-            if (entityId > 0 && id == 23)
-            { 
-                PluginLog.Debug($"{entityId:X}:{id}:{arg0}:{arg1}:{arg2}:{arg3:X}:");
-                if (arg0 != 0)
-                {
-                    if (Potency.BuffToAction.TryGetValue(arg0, out var actionId))
-                    {
-                        if (arg3 > 0x40000000) pet.TryGetValue(arg3, out arg3);
-                        Battles[^1].AddEvent(3, arg3, entityId, actionId, arg2);
-                    }
-
-                }
-                else Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg2);
-            }
-        }
-
-        private unsafe void ReceiveAbiltyEffect(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail)
-        {
-            byte targetCount = *(byte*)(effectHeader + 0x21);
-            if (targetCount is <=8 and >1)
-            {
-                Ability(effectHeader, (uint)sourceId,8);
-            }
-            if (targetCount is >8 and<=16)
-            {
-                Ability(effectHeader, (uint)sourceId, 16);
-            }
-            ReceivAblityHook.Original(sourceId,sourceCharacter,pos,effectHeader,effectArray,effectTrail);
-        }
-
-        private void Effect(uint sourceId, IntPtr sourceCharacter)
-        {
-            Ability(sourceCharacter, sourceId, 1);
-            EffectEffectHook.Original(sourceId,sourceCharacter);
         }
 
         public void Dispose()

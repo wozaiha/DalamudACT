@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Logging;
 using ImGuiNET;
 using ImGuiScene;
 using Lumina.Excel;
@@ -113,7 +114,7 @@ namespace ACT
             }
             ImGui.Separator();
 
-            if (!float.IsPositiveInfinity(totalDotSim) && totalDotSim != 0)
+            if (!float.IsInfinity(totalDotSim) && totalDotSim != 0)
             {
                 foreach (var (active,potency) in _plugin.Battles[choosed].PlayerDotPotency)
                 {
@@ -194,7 +195,7 @@ namespace ACT
 
             foreach (var (actor, damage) in _plugin.Battles[choosed].DamageDic)
             {
-                if (!float.IsPositiveInfinity(totaldotSim) && (totaldotSim != 0) &&
+                if (!float.IsInfinity(totaldotSim) && (totaldotSim != 0) &&
                     (DotDictionary.ContainsKey(actor)) && (_plugin.Battles[choosed].Level >= 60) && DotDictionary.TryGetValue(actor, out var dotDamage))
                 {
                     dmgList.Add((actor, damage.Damages[0] + (long)dotDamage));
@@ -218,7 +219,7 @@ namespace ACT
                 if (ImGui.IsItemHovered()) DrawDetails(actor, totaldotSim);
                 total += value;
             }
-            if (_plugin.Battles[choosed].TotalDotDamage != 0 && float.IsPositiveInfinity(totaldotSim) || _plugin.Battles[choosed].Level <60)
+            if (_plugin.Battles[choosed].TotalDotDamage != 0 && float.IsInfinity(totaldotSim) || _plugin.Battles[choosed].Level <60)
             {
                 ImGui.Text("DOT");
                 ImGui.SameLine(120);
