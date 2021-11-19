@@ -438,7 +438,7 @@ namespace ACT
             EffectEffectHook.Enable();
             ReceivAblityHook = new Hook<ReceiveAbiltyDelegate>(DalamudApi.SigScanner.ScanText("4C 89 44 24 18 53 56 57 41 54 41 57 48 81 EC ?? 00 00 00 8B F9"), ReceiveAbiltyEffect);
             ReceivAblityHook.Enable();
-            ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveAbiltyEffect);
+            ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
             ActorControlSelfHook.Enable();
             NpcSpawnHook= new Hook<NpcSpawnDelegate>(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 2D ?? ?? ?? ??"), NpcSpawnChange);
             NpcSpawnHook.Enable();
@@ -492,7 +492,7 @@ namespace ACT
             NpcSpawnHook.Original(target, ptr);
         }
 
-        private void ReceiveAbiltyEffect(uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10)
+        private void ReceiveActorControlSelf(uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10)
         {
             ActorControlSelfHook.Original(entityId, id, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
             if (entityId < 0x40000000) return;
