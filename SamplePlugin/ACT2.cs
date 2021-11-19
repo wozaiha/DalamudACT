@@ -280,9 +280,9 @@ namespace ACT
         
         private void StartCast(uint source, IntPtr ptr)
         {
-
-            if (source > 0x40000000) return;
             var data = Marshal.PtrToStructure<ActorCast>(ptr);
+            CastHook.Original(source, ptr);
+            if (source > 0x40000000) return;
             PluginLog.Debug($"Cast:{data.skillType}:{data.action_id}:{data.cast_time}");
             if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
             {
@@ -309,7 +309,6 @@ namespace ACT
                 Battles[^1].DamageDic[source].Special = actor.StatusList.Any(x => x.StatusId == 1229) ? 1.5f : 1.0f;
             }
 
-            CastHook.Original(source, ptr); 
         }
 
         private unsafe void NpcSpawn(uint target, IntPtr ptr)
@@ -321,22 +320,23 @@ namespace ACT
             NpcSpawnHook.Original(target, ptr);
         }
 
-        private void ReceiveActorControlSelf(uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10)
+        private void ReceiveActorControlSelf(uint entityId, uint id, uint buffID, uint arg1, uint damage, uint sourceId, uint arg4, uint arg5, ulong targetId, byte a10)
         {
-            ActorControlSelfHook.Original(entityId, id, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
+            ActorControlSelfHook.Original(entityId, id, buffID, arg1, damage, sourceId, arg4, arg5, targetId, a10);
             if (entityId < 0x40000000) return;
+            if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
+            if (sourceId > 0x40000000) return;
             if (entityId <= 0 || id != 23) return;
-            PluginLog.Debug($"{entityId:X}:{id}:{arg0}:{arg1}:{arg2}:{arg3:X}:");
-            if (arg0 != 0)
+            PluginLog.Debug($"{entityId:X}:{id}:{buffID}:{arg1}:{damage}:{sourceId:X}:");
+            if (buffID != 0)
             {
-                if (Potency.BuffToAction.TryGetValue(arg0, out var actionId))
+                if (Potency.BuffToAction.TryGetValue(buffID, out var actionId))
                 {
-                    if (arg3 > 0x40000000) pet.TryGetValue(arg3, out arg3);
-                    Battles[^1].AddEvent(3, arg3, entityId, actionId, arg2);
+                    Battles[^1].AddEvent(3, sourceId, entityId, actionId, damage);
                 }
 
             }
-            else Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg2);
+            else Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, damage);
         }
 
         private unsafe void ReceiveAbilityEffect(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail)
@@ -361,10 +361,10 @@ namespace ACT
             ReceivAblityHook.Original(sourceId,sourceCharacter,pos,effectHeader,effectArray,effectTrail);
         }
 
-        private void Effect(uint sourceId, IntPtr sourceCharacter)
+        private void Effect(uint sourceId, IntPtr ptr)
         {
-            Ability(sourceCharacter, sourceId, 1);
-            EffectEffectHook.Original(sourceId,sourceCharacter);
+            Ability(ptr, sourceId, 1);
+            EffectEffectHook.Original(sourceId,ptr);
         }
 
         #endregion
@@ -484,8 +484,8 @@ namespace ACT
             DalamudApi.Dispose();
         }
 
-        //[Command("/cehelper")]
-        //[HelpMessage("Show config window of CEHelper.")]
+        [Command("/act")]
+        [HelpMessage("显示Debug窗口.")]
         private void ToggleConfig(string command, string args)
         {
             PluginUi.DrawConfigUI();

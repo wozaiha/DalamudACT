@@ -16,7 +16,7 @@ namespace ACT
     {
         private Configuration config;
 
-        private bool Visible;
+        private bool Visible = false;
         private ACT _plugin;
         public int choosed;
         private ExcelSheet<Action> sheet = DalamudApi.DataManager.GetExcelSheet<Action>();
@@ -237,8 +237,8 @@ namespace ACT
 
         private void OnBuildUi_Debug()
         {
-            var open = false;
-            if (ImGui.Begin("Debug",ref open))
+            if (!Visible) return;
+            if (ImGui.Begin("Debug",ref Visible))
             {
                 ImGui.Text($"Total Dot DPS:{_plugin.Battles[choosed].TotalDotDamage / _plugin.Battles[choosed].Duration()}");
                 
