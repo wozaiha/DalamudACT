@@ -29,15 +29,27 @@ namespace ACT
         public List<ACTBattle> Battles = new(5);
         private ExcelSheet<TerritoryType> terrySheet;
         public static ExcelSheet<Action> sheet;
+
         private delegate void EffectDelegate(uint sourceId, IntPtr sourceCharacter);
+
         private Hook<EffectDelegate> EffectEffectHook;
-        private delegate void ReceiveAbiltyDelegate(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
+
+        private delegate void ReceiveAbiltyDelegate(int sourceId, IntPtr sourceCharacter, IntPtr pos,
+            IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
+
         private Hook<ReceiveAbiltyDelegate> ReceivAblityHook;
-        private delegate void ActorControlSelfDelegate(uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, UInt64 targetId, byte a10);
+
+        private delegate void ActorControlSelfDelegate(uint entityId, uint id, uint arg0, uint arg1, uint arg2,
+            uint arg3, uint arg4, uint arg5, UInt64 targetId, byte a10);
+
         private Hook<ActorControlSelfDelegate> ActorControlSelfHook;
+
         private delegate void NpcSpawnDelegate(uint sourceId, IntPtr sourceCharacter);
+
         private Hook<NpcSpawnDelegate> NpcSpawnHook;
+
         private delegate void CastDelegate(uint sourceId, IntPtr sourceCharacter);
+
         private Hook<CastDelegate> CastHook;
 
         public class ACTBattle
@@ -54,7 +66,6 @@ namespace ACT
                 public uint Target;
                 public uint Source;
                 public uint BuffId;
-                
             }
 
             public class Damage
@@ -80,7 +91,6 @@ namespace ACT
             public long TotalDotDamage;
 
 
-
             public float Duration()
             {
                 return (EndTime - StartTime) switch
@@ -92,33 +102,35 @@ namespace ACT
 
             private void AddPlayer(uint objectId)
             {
-                var actor = DalamudApi.ObjectTable.FirstOrDefault(x => x.ObjectId == objectId && x.ObjectKind == ObjectKind.Player);
-                if (actor == default || actor.Name.TextValue == "") return; 
-                Name.Add(objectId,actor.Name.TextValue);
-                DamageDic.Add(objectId,new Damage());
+                var actor = DalamudApi.ObjectTable.FirstOrDefault(x =>
+                    x.ObjectId == objectId && x.ObjectKind == ObjectKind.Player);
+                if (actor == default || actor.Name.TextValue == "") return;
+                Name.Add(objectId, actor.Name.TextValue);
+                DamageDic.Add(objectId, new Damage());
                 DamageDic[objectId].Damages = new Dictionary<uint, long> { { 0, 0 } };
                 DamageDic[objectId].JobId = ((Character)actor).ClassJob.Id;
                 DamageDic[objectId].PotSkill = Potency.BaseSkill[DamageDic[objectId].JobId];
                 DamageDic[objectId].SkillPotency = 0;
                 DamageDic[objectId].Speed = 1f;
-
             }
 
-            public void AddSS(uint objectId,float casttime,uint actionId)
+            public void AddSS(uint objectId, float casttime, uint actionId)
             {
                 var muti = actionId switch
                 {
                     7 => 1,
                     8 => 1,
-                    3598 => 1.5f/casttime,
-                    7442 => 1.5f/casttime,
-                    16555 =>1.5f/casttime,
-                    3577 => 2.8f/casttime,
-                    _ =>  2.5f/casttime,
+                    3598 => 1.5f / casttime,
+                    7442 => 1.5f / casttime,
+                    16555 => 1.5f / casttime,
+                    3577 => 2.8f / casttime,
+                    _ => 2.5f / casttime,
                 };
-                if (DamageDic.ContainsKey(objectId) && (DamageDic[objectId].Speed > muti || DamageDic[objectId].Speed == 1)) DamageDic[objectId].Speed = muti;
+                if (DamageDic.ContainsKey(objectId) &&
+                    (DamageDic[objectId].Speed > muti || DamageDic[objectId].Speed == 1))
+                    DamageDic[objectId].Speed = muti;
             }
-            
+
             public void AddEvent(int kind, uint from, uint target, uint id, long damage)
             {
                 if (from > 0x40000000 && from != 0xE0000000)
@@ -126,6 +138,7 @@ namespace ACT
                     PluginLog.Error($"Unknown Id {from:X}");
                     return;
                 }
+
                 if (!Name.ContainsKey(from)) AddPlayer(from);
                 //PluginLog.Log($"{Name.Count}");
 
@@ -139,27 +152,27 @@ namespace ACT
                         var dot = ActiveToDot(active);
                         var buff = ActiveToUlong(active);
                         if (!DamageDic.ContainsKey(dot.Source)) AddPlayer(dot.Source);
-                        if (PlayerDotPotency.ContainsKey(buff)) PlayerDotPotency[buff] += Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special;
-                        else PlayerDotPotency.Add(buff,Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special);
+                        if (PlayerDotPotency.ContainsKey(buff))
+                            PlayerDotPotency[buff] += Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special;
+                        else
+                            PlayerDotPotency.Add(buff,
+                                Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special);
                     }
                 }
 
                 //伤害
-                if (from != 0xE0000000 && kind == 3) 
+                if (from != 0xE0000000 && kind == 3)
                 {
-                    if (Potency.SkillPot.TryGetValue(id, out var pot))  //基线技能
+                    if (Potency.SkillPot.TryGetValue(id, out var pot)) //基线技能
                     {
-                        if (DamageDic[from].PotSkill != id)
-                        {
-                            if (id >10)
-                            {
-                                DamageDic[from].PotSkill = id;
-                                DamageDic[from].SkillPotency = pot * Potency.Muti[DamageDic[from].JobId];
-                            }
-                        }
-                        else
+                        if (DamageDic[from].PotSkill == id)
                         {
                             DamageDic[from].SkillPotency += pot * Potency.Muti[DamageDic[from].JobId];
+                        }
+                        else if (id > 10)
+                        {
+                            DamageDic[from].PotSkill = id;
+                            DamageDic[from].SkillPotency = pot * Potency.Muti[DamageDic[from].JobId];
                         }
                     }
 
@@ -170,33 +183,32 @@ namespace ACT
                     }
                     else
                     {
-                        DamageDic[from].Damages.Add(id,damage);
-                        PluginUI.Icon.TryAdd(id,DalamudApi.DataManager.GetImGuiTextureHqIcon(sheet.GetRow(id)!.Icon));
+                        DamageDic[from].Damages.Add(id, damage);
+                        PluginUI.Icon.TryAdd(id, DalamudApi.DataManager.GetImGuiTextureHqIcon(sheet.GetRow(id)!.Icon));
                     }
 
                     DamageDic[from].Damages[0] += damage;
                 }
-                
             }
 
             private static ulong ActiveToUlong(BigInteger active)
             {
                 return (ulong)(active >> 32);
             }
-            
+
             public static Dot ActiveToDot(BigInteger active)
             {
                 return new Dot()
                 {
-                    BuffId = (uint)(active >> 64), 
-                    Source = (uint)(active >> 32 &0xFFFFFFFF),
+                    BuffId = (uint)(active >> 64),
+                    Source = (uint)(active >> 32 & 0xFFFFFFFF),
                     Target = (uint)(active & 0xFFFFFFFF)
                 };
             }
 
             private static BigInteger DotToActive(Dot dot)
             {
-                return ((BigInteger)dot.BuffId << 64) + ((BigInteger)dot.Source << 32) + dot.Target ;
+                return ((BigInteger)dot.BuffId << 64) + ((BigInteger)dot.Source << 32) + dot.Target;
             }
 
             public float PDD(uint actor)
@@ -205,8 +217,8 @@ namespace ACT
                 {
                     dmg = 1;
                 }
-                return dmg * DamageDic[actor].Speed / DamageDic[actor].SkillPotency;
 
+                return dmg * DamageDic[actor].Speed / DamageDic[actor].SkillPotency;
             }
 
             private bool CheckTargetDot(uint id)
@@ -217,13 +229,15 @@ namespace ACT
                     PluginLog.Error($"Dot target {id:X} is not BattleNpc");
                     return false;
                 }
+
                 ActiveDots.Clear();
                 var npc = (BattleNpc)target;
                 foreach (var status in npc.StatusList)
                 {
                     if (Potency.DotPot.ContainsKey(status.StatusId))
                     {
-                        ActiveDots.Add(DotToActive(new Dot(){BuffId = status.StatusId,Source = status.SourceID,Target = id}));
+                        ActiveDots.Add(DotToActive(new Dot()
+                            { BuffId = status.StatusId, Source = status.SourceID, Target = id }));
                     }
                 }
 
@@ -232,6 +246,7 @@ namespace ACT
         }
 
         #region OPcode & Hook functions
+
         private void SearchForPet()
         {
             pet.Clear();
@@ -244,7 +259,6 @@ namespace ACT
                 if (pet.ContainsKey(owner)) pet[owner] = obj.ObjectId;
                 else pet.Add(obj.ObjectId, owner);
                 //PluginLog.Information($"{owner:X} {obj.ObjectId:X}");
-                
             }
         }
 
@@ -255,7 +269,7 @@ namespace ACT
 
             var header = Marshal.PtrToStructure<Header>(ptr);
             var effect = (EffectEntry*)(ptr + sizeof(Header));
-            var target = (ulong*)(ptr + sizeof(Header) + 8*sizeof(EffectEntry)*length);
+            var target = (ulong*)(ptr + sizeof(Header) + 8 * sizeof(EffectEntry) * length);
             PluginLog.Debug($"-----------------------Ability{length}------------------------------");
             for (int i = 0; i < length; i++)
             {
@@ -267,20 +281,23 @@ namespace ACT
                     {
                         long damage = effect->param0;
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
-                        Battles[^1].AddEvent(3,sourceId,(uint)*target,header.actionId,damage);
+                        Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage);
                         PluginLog.Debug($"{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
                     }
+
                     //else if (effect->type == 0xE)
                     //{
                     //    Battles[^1].AddEvent(0xE,sourceId,(uint)data.targetId[i],effect->param0,0);
                     //}
                     effect++;
                 }
+
                 target++;
             }
+
             PluginLog.Debug("------------------------END------------------------------");
         }
-        
+
         private void StartCast(uint source, IntPtr ptr)
         {
             var data = Marshal.PtrToStructure<ActorCast>(ptr);
@@ -311,7 +328,6 @@ namespace ACT
                     x.ObjectId == source && x.ObjectKind == ObjectKind.Player);
                 Battles[^1].DamageDic[source].Special = actor.StatusList.Any(x => x.StatusId == 1229) ? 1.5f : 1.0f;
             }
-
         }
 
         private unsafe void NpcSpawn(uint target, IntPtr ptr)
@@ -323,7 +339,8 @@ namespace ACT
             NpcSpawnHook.Original(target, ptr);
         }
 
-        private void ReceiveActorControlSelf(uint entityId, uint id, uint buffID, uint arg1, uint damage, uint sourceId, uint arg4, uint arg5, ulong targetId, byte a10)
+        private void ReceiveActorControlSelf(uint entityId, uint id, uint buffID, uint arg1, uint damage, uint sourceId,
+            uint arg4, uint arg5, ulong targetId, byte a10)
         {
             ActorControlSelfHook.Original(entityId, id, buffID, arg1, damage, sourceId, arg4, arg5, targetId, a10);
             if (entityId < 0x40000000) return;
@@ -337,37 +354,37 @@ namespace ACT
                 {
                     Battles[^1].AddEvent(3, sourceId, entityId, actionId, damage);
                 }
-
             }
             else Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, damage);
         }
 
-        private unsafe void ReceiveAbilityEffect(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail)
+        private unsafe void ReceiveAbilityEffect(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader,
+            IntPtr effectArray, IntPtr effectTrail)
         {
             var targetCount = *(byte*)(effectHeader + 0x21);
             switch (targetCount)
             {
                 case <=8 and >1:
-                    Ability(effectHeader, (uint)sourceId,8);
+                    Ability(effectHeader, (uint)sourceId, 8);
                     break;
-                case >8 and<=16:
+                case >8 and <=16:
                     Ability(effectHeader, (uint)sourceId, 16);
                     break;
-                case >16 and<=24:
+                case >16 and <=24:
                     Ability(effectHeader, (uint)sourceId, 24);
                     break;
-                case >24 and<=32:
+                case >24 and <=32:
                     Ability(effectHeader, (uint)sourceId, 32);
                     break;
             }
 
-            ReceivAblityHook.Original(sourceId,sourceCharacter,pos,effectHeader,effectArray,effectTrail);
+            ReceivAblityHook.Original(sourceId, sourceCharacter, pos, effectHeader, effectArray, effectTrail);
         }
 
         private void Effect(uint sourceId, IntPtr ptr)
         {
             Ability(ptr, sourceId, 1);
-            EffectEffectHook.Original(sourceId,ptr);
+            EffectEffectHook.Original(sourceId, ptr);
         }
 
         #endregion
@@ -380,12 +397,14 @@ namespace ACT
                 Battles[^1].ActiveDots.Clear();
                 //新的战斗
                 if (Battles.Count == 3) Battles.RemoveAt(0);
-                Battles.Add(new ACTBattle(0,0));
+                Battles.Add(new ACTBattle(0, 0));
                 SearchForPet();
             }
+
             if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
             {
-                if (DalamudApi.ClientState.LocalPlayer != null && (DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) != 0)
+                if (DalamudApi.ClientState.LocalPlayer != null &&
+                    (DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) != 0)
                 {
                     //开始战斗
                     Battles[^1].StartTime = now;
@@ -395,7 +414,6 @@ namespace ACT
                     SearchForPet();
                 }
             }
-            
         }
 
         private void NetWork(IntPtr dataPtr, ushort opCode, uint sourceActorId, uint targetActorId,
@@ -424,7 +442,6 @@ namespace ACT
             //        Cast(dataPtr, targetActorId);
             //        break;
             //}
-            
         }
 
 
@@ -434,12 +451,13 @@ namespace ACT
 
             for (uint i = 62100; i < 62141; i++)
             {
-                Icon.Add(i-62100,DalamudApi.DataManager.GetImGuiTextureHqIcon(i));
+                Icon.Add(i - 62100, DalamudApi.DataManager.GetImGuiTextureHqIcon(i));
             }
-            Icon.Add(99,DalamudApi.DataManager.GetImGuiTextureHqIcon(103)); //LB
 
-            Battles.Add(new ACTBattle(0,0));
-            
+            Icon.Add(99, DalamudApi.DataManager.GetImGuiTextureHqIcon(103)); //LB
+
+            Battles.Add(new ACTBattle(0, 0));
+
             Configuration = DalamudApi.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(DalamudApi.PluginInterface);
 
@@ -447,6 +465,7 @@ namespace ACT
             sheet = DalamudApi.DataManager.GetExcelSheet<Action>()!;
 
             #region Hook
+
             {
                 EffectEffectHook = new Hook<EffectDelegate>(
                     DalamudApi.SigScanner.ScanText(
@@ -468,7 +487,7 @@ namespace ACT
                     DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), StartCast);
                 CastHook.Enable();
             }
-            
+
             #endregion
 
             DalamudApi.GameNetwork.NetworkMessage += NetWork;
@@ -480,10 +499,11 @@ namespace ACT
         {
             DalamudApi.GameNetwork.NetworkMessage -= NetWork;
             PluginUi?.Dispose();
-            foreach (var (id,texture) in Icon)
+            foreach (var (id, texture) in Icon)
             {
                 texture?.Dispose();
             }
+
             ActorControlSelfHook.Disable();
             EffectEffectHook.Disable();
             ReceivAblityHook.Disable();
