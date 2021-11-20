@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACT.Struct
 {
-     struct NpcSpawn
+    internal struct NpcSpawn
     {
         private uint gimmickId; // needs to be existing in the map, mob will snap to it
         private byte u2b;

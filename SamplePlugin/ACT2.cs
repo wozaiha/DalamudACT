@@ -24,20 +24,32 @@ namespace ACT
 
         public Configuration Configuration;
         private PluginUI PluginUi;
-        private Dictionary<uint, uint> pet = new();
+        private static Dictionary<uint, uint> pet = new();
         public Dictionary<uint, TextureWrap?> Icon = new();
         public List<ACTBattle> Battles = new(5);
         private ExcelSheet<TerritoryType> terrySheet;
         public static ExcelSheet<Action> sheet;
+
         private delegate void EffectDelegate(uint sourceId, IntPtr sourceCharacter);
+
         private Hook<EffectDelegate> EffectEffectHook;
-        private delegate void ReceiveAbiltyDelegate(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
-        private Hook<ReceiveAbiltyDelegate> ReceivAblityHook;
-        private delegate void ActorControlSelfDelegate(uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, UInt64 targetId, byte a10);
+
+        private delegate void ReceiveAbiltyDelegate(int sourceId, IntPtr sourceCharacter, IntPtr pos,
+            IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
+
+        private Hook<ReceiveAbiltyDelegate> ReceivAbilityHook;
+
+        private delegate void ActorControlSelfDelegate(uint entityId, uint id, uint arg0, uint arg1, uint arg2,
+            uint arg3, uint arg4, uint arg5, ulong targetId, byte a10);
+
         private Hook<ActorControlSelfDelegate> ActorControlSelfHook;
-        private delegate void NpcSpawnDelegate(uint sourceId, IntPtr sourceCharacter);
+
+        private delegate void NpcSpawnDelegate(Int64 a, uint sourceId, IntPtr sourceCharacter);
+
         private Hook<NpcSpawnDelegate> NpcSpawnHook;
+
         private delegate void CastDelegate(uint sourceId, IntPtr sourceCharacter);
+
         private Hook<CastDelegate> CastHook;
 
         public class ACTBattle
@@ -54,7 +66,6 @@ namespace ACT
                 public uint Target;
                 public uint Source;
                 public uint BuffId;
-                
             }
 
             public class Damage
@@ -80,47 +91,46 @@ namespace ACT
             public long TotalDotDamage;
 
 
-
-            public float Duration()
+            public long Duration()
             {
                 return (EndTime - StartTime) switch
                 {
-                    <= 0 => 0.01f, //战斗中
+                    <= 0 => 1, //战斗中
                     _ => EndTime - StartTime //战斗结束
                 };
             }
 
             private void AddPlayer(uint objectId)
             {
-                var actor = DalamudApi.ObjectTable.FirstOrDefault(x => x.ObjectId == objectId && x.ObjectKind == ObjectKind.Player);
-                if (actor == default || actor.Name.TextValue == "") return; 
-                Name.Add(objectId,actor.Name.TextValue);
-                DamageDic.Add(objectId,new Damage());
+                var actor = DalamudApi.ObjectTable.FirstOrDefault(x =>
+                    x.ObjectId == objectId && x.ObjectKind == ObjectKind.Player);
+                if (actor == default || actor.Name.TextValue == "") return;
+                Name.Add(objectId, actor.Name.TextValue);
+                DamageDic.Add(objectId, new Damage());
                 DamageDic[objectId].Damages = new Dictionary<uint, long> { { 0, 0 } };
-                DamageDic[objectId].PotSkill = 0;
-                //DamageDic[objectId].PotSwings = 0;
-                DamageDic[objectId].SkillPotency = 0;
-                //DamageDic[objectId].DPP = 0;
                 DamageDic[objectId].JobId = ((Character)actor).ClassJob.Id;
+                DamageDic[objectId].PotSkill = Potency.BaseSkill[DamageDic[objectId].JobId];
+                DamageDic[objectId].SkillPotency = 0;
                 DamageDic[objectId].Speed = 1f;
-
             }
 
-            public void AddSS(uint objectId,float casttime,uint actionId)
+            public void AddSS(uint objectId, float casttime, uint actionId)
             {
                 var muti = actionId switch
                 {
                     7 => 1,
                     8 => 1,
-                    3598 => 1.5f/casttime,
-                    7442 => 1.5f/casttime,
-                    16555 =>1.5f/casttime,
-                    3577 => 2.8f/casttime,
-                    _ =>  2.5f/casttime,
+                    3598 => 1.5f / casttime,
+                    7442 => 1.5f / casttime,
+                    16555 => 1.5f / casttime,
+                    3577 => 2.8f / casttime,
+                    _ => 2.5f / casttime
                 };
-                if (DamageDic.ContainsKey(objectId) && (DamageDic[objectId].Speed > muti || DamageDic[objectId].Speed == 1)) DamageDic[objectId].Speed = muti;
+                if (DamageDic.ContainsKey(objectId) &&
+                    (DamageDic[objectId].Speed > muti || DamageDic[objectId].Speed == 1))
+                    DamageDic[objectId].Speed = muti;
             }
-            
+
             public void AddEvent(int kind, uint from, uint target, uint id, long damage)
             {
                 if (from > 0x40000000 && from != 0xE0000000)
@@ -128,6 +138,8 @@ namespace ACT
                     PluginLog.Error($"Unknown Id {from:X}");
                     return;
                 }
+                PluginLog.Debug($"AddEvent:{kind}:{from:X}:{target:X}:{id}:{damage}");
+
                 if (!Name.ContainsKey(from)) AddPlayer(from);
                 //PluginLog.Log($"{Name.Count}");
 
@@ -140,25 +152,30 @@ namespace ACT
                     {
                         var dot = ActiveToDot(active);
                         var buff = ActiveToUlong(active);
-                        if (PlayerDotPotency.ContainsKey(buff)) PlayerDotPotency[buff] += Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special;
-                        else PlayerDotPotency.Add(buff,Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special);
+                        if (dot.Source > 0x40000000) pet.TryGetValue(dot.Source, out dot.Source);
+                        if (dot.Source > 0x40000000) continue;
+                        if (!DamageDic.ContainsKey(dot.Source)) AddPlayer(dot.Source);
+                        if (PlayerDotPotency.ContainsKey(buff))
+                            PlayerDotPotency[buff] += Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special;
+                        else
+                            PlayerDotPotency.Add(buff,
+                                Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special);
                     }
                 }
 
                 //伤害
-                if (from != 0xE0000000 && kind == 3) 
+                if (from != 0xE0000000 && kind == 3)
                 {
-                    if (Potency.SkillPot.TryGetValue(id, out var pot))  //基线技能
+                    if (Potency.SkillPot.TryGetValue(id, out var pot)) //基线技能
                     {
-                        if (DamageDic[from].PotSkill == 0)
-                        {
-                            DamageDic[from].PotSkill = id;
-                            //DamageDic[from].PotSwings = 1;
-                            DamageDic[from].SkillPotency = pot * Potency.Muti[DamageDic[from].JobId];
-                        }
-                        else
+                        if (DamageDic[from].PotSkill == id)
                         {
                             DamageDic[from].SkillPotency += pot * Potency.Muti[DamageDic[from].JobId];
+                        }
+                        else if (id > 10)
+                        {
+                            DamageDic[from].PotSkill = id;
+                            DamageDic[from].SkillPotency = pot * Potency.Muti[DamageDic[from].JobId];
                         }
                     }
 
@@ -169,54 +186,39 @@ namespace ACT
                     }
                     else
                     {
-                        DamageDic[from].Damages.Add(id,damage);
-                        PluginUI.Icon.TryAdd(id,DalamudApi.DataManager.GetImGuiTextureHqIcon(sheet.GetRow(id)!.Icon));
+                        DamageDic[from].Damages.Add(id, damage);
+                        PluginUI.Icon.TryAdd(id, DalamudApi.DataManager.GetImGuiTextureHqIcon(sheet.GetRow(id)!.Icon));
                     }
 
                     DamageDic[from].Damages[0] += damage;
                 }
-
-                ////BUFF up
-                //if (kind == 0xE && target > 0x40000000 && Potency.DotPot.ContainsKey(id))
-                //{
-                //    var dot = DotToActive(new Dot{ BuffId = id, Source = from, Target = target });
-                //    if (!ActiveDots.Contains(dot)) ActiveDots.Add(dot);
-                //}
-                
-                ////Buff gone
-                //if (kind == 21 && target > 0x40000000 && Potency.DotPot.ContainsKey(id))
-                //{
-                    
-                //    var dot = DotToActive(new Dot{ BuffId = id, Source = from, Target = target });
-                //    if (ActiveDots.Contains(dot)) ActiveDots.Remove(dot);
-                //}
-
             }
 
-            public static ulong ActiveToUlong(BigInteger active)
+            private static ulong ActiveToUlong(BigInteger active)
             {
                 return (ulong)(active >> 32);
             }
-            
+
             public static Dot ActiveToDot(BigInteger active)
             {
                 return new Dot()
                 {
-                    BuffId = (uint)(active >> 64), 
-                    Source = (uint)(active >> 32 &0xFFFFFFFF),
+                    BuffId = (uint)(active >> 64),
+                    Source = (uint)((active >> 32) & 0xFFFFFFFF),
                     Target = (uint)(active & 0xFFFFFFFF)
                 };
             }
 
             private static BigInteger DotToActive(Dot dot)
             {
-                return ((BigInteger)dot.BuffId << 64) + ((BigInteger)dot.Source << 32) + dot.Target ;
+                return ((BigInteger)dot.BuffId << 64) + ((BigInteger)dot.Source << 32) + dot.Target;
             }
 
             public float PDD(uint actor)
             {
-                return DamageDic[actor].Damages[DamageDic[actor].PotSkill] * DamageDic[actor].Speed / DamageDic[actor].SkillPotency;
+                if (!DamageDic[actor].Damages.TryGetValue(DamageDic[actor].PotSkill, out var dmg)) dmg = 1;
 
+                return dmg * DamageDic[actor].Speed / DamageDic[actor].SkillPotency;
             }
 
             private bool CheckTargetDot(uint id)
@@ -227,13 +229,18 @@ namespace ACT
                     PluginLog.Error($"Dot target {id:X} is not BattleNpc");
                     return false;
                 }
+
                 ActiveDots.Clear();
                 var npc = (BattleNpc)target;
                 foreach (var status in npc.StatusList)
                 {
+                    PluginLog.Debug($"Check Dot on {id:X}:{status.StatusId}:{status.SourceID}");
                     if (Potency.DotPot.ContainsKey(status.StatusId))
                     {
-                        ActiveDots.Add(DotToActive(new Dot(){BuffId = status.StatusId,Source = status.SourceID,Target = id}));
+                        var source = status.SourceID;
+                        if (status.SourceID > 0x40000000) pet.TryGetValue(source, out source);
+                        ActiveDots.Add(DotToActive(new Dot()
+                            { BuffId = status.StatusId, Source = source, Target = id }));
                     }
                 }
 
@@ -241,106 +248,7 @@ namespace ACT
             }
         }
 
-        #region OPcode functions
-        
-        private unsafe void Spawn(IntPtr ptr, uint target)
-        {
-            var obj = (NpcSpawn*)ptr;
-            if (pet.ContainsKey(target)) pet[target] = obj->spawnerId;
-            else pet.Add(target, obj->spawnerId);
-            PluginLog.Debug($"{target:X}:{obj->bNPCName}:{obj->spawnerId:X}");
-        }
-
-        //private void ActorControl(IntPtr ptr,uint target)
-        //{
-        //    if (target < 0x40000000) return;
-            
-        //    var dat = Marshal.PtrToStructure<ActorControl.ActorControlStruct>(ptr);
-
-        //    PluginLog.Debug($"ActorControl {target:X}:{dat.category}:{dat.param1}:{dat.type}:{dat.param3}:{dat.param4:X}:");
-        //    if (dat.category == 23 && dat.type == 3)
-        //    {
-        //        if (dat.param1 != 0)
-        //        {
-        //            if (Potency.BuffToAction.TryGetValue(dat.param1, out var actionId))
-        //            {
-        //                if (dat.param4 > 0x40000000) pet.TryGetValue(dat.param4, out dat.param4);
-        //                Battles[^1].AddEvent(3, dat.param4, target, actionId, dat.param3);
-        //            }
-                        
-        //        }
-        //        else Battles[^1].AddEvent(3, 0xE000_0000, target, 0, dat.param3);
-        //    }
-        //    else if (dat.category == 21 && dat.type == 0)
-        //    {
-        //        Battles[^1].AddEvent(21, dat.param3, target, dat.param1, 0);
-        //    }
-        //}
-
-        private unsafe void Ability(IntPtr ptr, uint sourceId, int length)
-        {
-            if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
-            if (sourceId > 0x40000000) return;
-
-            var header = Marshal.PtrToStructure<Header>(ptr);
-            var effect = (EffectEntry*)(ptr + sizeof(Header));
-            var target = (ulong*)(ptr + sizeof(Header) + 8*sizeof(EffectEntry)*length);
-            PluginLog.Debug($"-----------------------Ability{length}------------------------------");
-            for (int i = 0; i < length; i++)
-            {
-                if (*target == 0x0) break;
-                //PluginLog.Debug($"{*target:X}");
-                for (int j = 0; j < 8; j++)
-                {
-                    if (effect->type == 3)
-                    {
-                        long damage = effect->param0;
-                        if (effect->param5 == 0x40) damage += effect->param4 << 16;
-                        Battles[^1].AddEvent(3,sourceId,(uint)*target,header.actionId,damage);
-                        PluginLog.Debug($"{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
-                    }
-                    //else if (effect->type == 0xE)
-                    //{
-                    //    Battles[^1].AddEvent(0xE,sourceId,(uint)data.targetId[i],effect->param0,0);
-                    //}
-                    effect++;
-                }
-                target++;
-            }
-            PluginLog.Debug("------------------------END------------------------------");
-        }
-        
-        private void Cast(IntPtr ptr, uint source)
-        {
-            if (source>0x40000000) return;
-            var data = Marshal.PtrToStructure<ActorCast>(ptr);
-            PluginLog.Debug($"Cast:{data.skillType}:{data.action_id}:{data.cast_time}");
-            if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
-            {
-                if (Battles[^1].DamageDic.TryGetValue(source, out var damage))
-                {
-                    Battles[^1].AddSS(source,data.cast_time,data.action_id); 
-                }
-
-                //if (data.action_id == 3577) //火3 天语
-                //{
-                //    Battles[^1].DamageDic[source].Special = DalamudApi.ClientState.LocalPlayer?.Level switch
-                //    {
-                //        >=78 => 1.15f,
-                //        >=56 => 1.10f,
-                //        _ => 1f
-                //    };
-                //}
-            }
-
-            if (data.action_id == 7489) //彼岸花 回天
-            {
-                var actor = (PlayerCharacter)DalamudApi.ObjectTable.First(x =>
-                    x.ObjectId == source && x.ObjectKind == ObjectKind.Player);
-                Battles[^1].DamageDic[source].Special = actor.StatusList.Any(x => x.StatusId == 1229) ? 1.5f : 1.0f;
-            }
-
-        }
+        #region OPcode & Hook functions
 
         private void SearchForPet()
         {
@@ -352,10 +260,115 @@ namespace ACT
                 var owner = ((BattleNpc)obj).OwnerId;
 
                 if (pet.ContainsKey(owner)) pet[owner] = obj.ObjectId;
-                    else pet.Add(obj.ObjectId, owner);
-                    //PluginLog.Information($"{owner:X} {obj.ObjectId:X}");
-                
+                else pet.Add(obj.ObjectId, owner);
+                PluginLog.Debug($"SearchForPet:{obj.ObjectId:X}:{owner:X}");
             }
+        }
+
+        private unsafe void Ability(IntPtr ptr, uint sourceId, int length)
+        {
+            if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
+            if (sourceId > 0x40000000) return;
+
+            var header = Marshal.PtrToStructure<Header>(ptr);
+            var effect = (EffectEntry*)(ptr + sizeof(Header));
+            var target = (ulong*)(ptr + sizeof(Header) + 8 * sizeof(EffectEntry) * length);
+            PluginLog.Debug($"-----------------------Ability{length}------------------------------");
+            for (var i = 0; i < length; i++)
+            {
+                if (*target == 0x0) break;
+                //PluginLog.Debug($"{*target:X}");
+                for (var j = 0; j < 8; j++)
+                {
+                    if (effect->type == 3)
+                    {
+                        long damage = effect->param0;
+                        if (effect->param5 == 0x40) damage += effect->param4 << 16;
+                        Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage);
+                        PluginLog.Debug($"{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
+                    }
+
+                    //else if (effect->type == 0xE)
+                    //{
+                    //    Battles[^1].AddEvent(0xE,sourceId,(uint)data.targetId[i],effect->param0,0);
+                    //}
+                    effect++;
+                }
+
+                target++;
+            }
+
+            PluginLog.Debug("------------------------END------------------------------");
+        }
+
+        private void StartCast(uint source, IntPtr ptr)
+        {
+            var data = Marshal.PtrToStructure<ActorCast>(ptr);
+            CastHook.Original(source, ptr);
+            if (source > 0x40000000) return;
+            PluginLog.Debug($"Cast:{data.skillType}:{data.action_id}:{data.cast_time}");
+            if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
+                if (Battles[^1].DamageDic.TryGetValue(source, out _))
+                    Battles[^1].AddSS(source, data.cast_time, data.action_id);
+
+            if (data.action_id == 7489) //彼岸花 回天
+            {
+                var actor = (PlayerCharacter)DalamudApi.ObjectTable.First(x =>
+                    x.ObjectId == source && x.ObjectKind == ObjectKind.Player);
+                Battles[^1].DamageDic[source].Special = actor.StatusList.Any(x => x.StatusId == 1229) ? 1.5f : 1.0f;
+            }
+        }
+
+
+
+        private void ReceiveActorControlSelf(uint entityId, uint type, uint buffID, uint direct, uint damage, uint sourceId,
+            uint arg4, uint arg5, ulong targetId, byte a10)
+        {
+            PluginLog.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:{buffID}:{direct}:{damage}:{sourceId:X}:");
+            ActorControlSelfHook.Original(entityId, type, buffID, direct, damage, sourceId, arg4, arg5, targetId, a10);
+            if (entityId < 0x40000000) return;
+            if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
+            if (sourceId > 0x40000000) return;
+            if (type != 23) return;
+            
+            if (buffID != 0)
+            {
+                if (Potency.BuffToAction.TryGetValue(buffID, out buffID))
+                    Battles[^1].AddEvent(3, sourceId, entityId, buffID, damage);
+            }
+            else
+            {
+                Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, damage);
+            }
+        }
+
+        private unsafe void ReceiveAbilityEffect(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader,
+            IntPtr effectArray, IntPtr effectTrail)
+        {
+            var targetCount = *(byte*)(effectHeader + 0x21);
+            switch (targetCount)
+            {
+                case <=8 and >1:
+                    Ability(effectHeader, (uint)sourceId, 8);
+                    break;
+                case >8 and <=16:
+                    Ability(effectHeader, (uint)sourceId, 16);
+                    break;
+                case >16 and <=24:
+                    Ability(effectHeader, (uint)sourceId, 24);
+                    break;
+                case >24 and <=32:
+                    Ability(effectHeader, (uint)sourceId, 32);
+                    break;
+            }
+
+            ReceivAbilityHook.Original(sourceId, sourceCharacter, pos, effectHeader, effectArray, effectTrail);
+        }
+
+        private void Effect(uint sourceId, IntPtr ptr)
+        {
+            Ability(ptr, sourceId, 1);
+            EffectEffectHook.Original(sourceId, ptr);
         }
 
         #endregion
@@ -368,12 +381,13 @@ namespace ACT
                 Battles[^1].ActiveDots.Clear();
                 //新的战斗
                 if (Battles.Count == 3) Battles.RemoveAt(0);
-                Battles.Add(new ACTBattle(0,0));
+                Battles.Add(new ACTBattle(0, 0));
                 SearchForPet();
             }
+
             if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
-            {
-                if (DalamudApi.ClientState.LocalPlayer != null && (DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) != 0)
+                if (DalamudApi.ClientState.LocalPlayer != null &&
+                    (DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) != 0)
                 {
                     //开始战斗
                     Battles[^1].StartTime = now;
@@ -382,8 +396,6 @@ namespace ACT
                     PluginUi.choosed = Battles.Count - 1;
                     SearchForPet();
                 }
-            }
-            
         }
 
         private void NetWork(IntPtr dataPtr, ushort opCode, uint sourceActorId, uint targetActorId,
@@ -412,7 +424,6 @@ namespace ACT
             //        Cast(dataPtr, targetActorId);
             //        break;
             //}
-            
         }
 
 
@@ -420,137 +431,74 @@ namespace ACT
         {
             DalamudApi.Initialize(this, pluginInterface);
 
-            for (uint i = 62100; i < 62141; i++)
-            {
-                Icon.Add(i-62100,DalamudApi.DataManager.GetImGuiTextureHqIcon(i));
-            }
-            Icon.Add(99,DalamudApi.DataManager.GetImGuiTextureHqIcon(103)); //LB
+            for (uint i = 62100; i < 62141; i++) Icon.Add(i - 62100, DalamudApi.DataManager.GetImGuiTextureHqIcon(i));
 
-            Battles.Add(new ACTBattle(0,0));
-            
+            Icon.Add(99, DalamudApi.DataManager.GetImGuiTextureHqIcon(103)); //LB
+
+            Battles.Add(new ACTBattle(0, 0));
+
             Configuration = DalamudApi.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(DalamudApi.PluginInterface);
 
             terrySheet = DalamudApi.DataManager.GetExcelSheet<TerritoryType>()!;
             sheet = DalamudApi.DataManager.GetExcelSheet<Action>()!;
 
-            EffectEffectHook = new Hook<EffectDelegate>(DalamudApi.SigScanner.ScanText("48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
-            EffectEffectHook.Enable();
-            ReceivAblityHook = new Hook<ReceiveAbiltyDelegate>(DalamudApi.SigScanner.ScanText("4C 89 44 24 18 53 56 57 41 54 41 57 48 81 EC ?? 00 00 00 8B F9"), ReceiveAbiltyEffect);
-            ReceivAblityHook.Enable();
-            ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
-            ActorControlSelfHook.Enable();
-            NpcSpawnHook= new Hook<NpcSpawnDelegate>(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 2D ?? ?? ?? ??"), NpcSpawnChange);
-            NpcSpawnHook.Enable();
-            CastHook= new Hook<CastDelegate>(DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), ReceiveCast);
-            CastHook.Enable();
+            #region Hook
+
+            {
+                EffectEffectHook = new Hook<EffectDelegate>(
+                    DalamudApi.SigScanner.ScanText(
+                        "48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
+                EffectEffectHook.Enable();
+                ReceivAbilityHook = new Hook<ReceiveAbiltyDelegate>(
+                    DalamudApi.SigScanner.ScanText("4C 89 44 24 18 53 56 57 41 54 41 57 48 81 EC ?? 00 00 00 8B F9"),
+                    ReceiveAbilityEffect);
+                ReceivAbilityHook.Enable();
+                ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(
+                    DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
+                ActorControlSelfHook.Enable();
+                NpcSpawnHook = new Hook<NpcSpawnDelegate>(
+                    DalamudApi.SigScanner.ScanText(
+                        "E8 ?? ?? ?? ?? 48 8B 5C 24 ?? 48 83 C4 20 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 57 48 83 EC 20 48 8B DA 8B F9 "),
+                    ReviceNpcSpawn);
+                NpcSpawnHook.Enable();
+                CastHook = new Hook<CastDelegate>(
+                    DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), StartCast);
+                CastHook.Enable();
+            }
+
+            #endregion
+
             DalamudApi.GameNetwork.NetworkMessage += NetWork;
 
             PluginUi = new PluginUI(this);
         }
 
-        private void ReceiveCast(uint source, IntPtr ptr)
+        private void ReviceNpcSpawn(Int64 a, uint target, IntPtr ptr)
         {
-
-            if (source > 0x40000000) return;
-            var data = Marshal.PtrToStructure<ActorCast>(ptr);
-            PluginLog.Debug($"Cast:{data.skillType}:{data.action_id}:{data.cast_time}");
-            if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
-            {
-                if (Battles[^1].DamageDic.TryGetValue(source, out var damage))
-                {
-                    Battles[^1].AddSS(source, data.cast_time, data.action_id);
-                }
-
-                // if (data.action_id == 3577) //火3 天语
-                // {
-                //     Battles[^1].DamageDic[source].Special = DalamudApi.ClientState.LocalPlayer?.Level switch
-                //     {
-                //         >= 78 => 1.15f,
-                //         >= 56 => 1.10f,
-                //         _ => 1f
-                //     };
-                // }
-            }
-
-            if (data.action_id == 7489) //彼岸花 回天
-            {
-                var actor = (PlayerCharacter)DalamudApi.ObjectTable.First(x =>
-                    x.ObjectId == source && x.ObjectKind == ObjectKind.Player);
-                Battles[^1].DamageDic[source].Special = actor.StatusList.Any(x => x.StatusId == 1229) ? 1.5f : 1.0f;
-            }
-
-            CastHook.Original(source, ptr); 
-        }
-
-        private unsafe void NpcSpawnChange(uint target, IntPtr ptr)
-        {
-            var obj = (NpcSpawn*)ptr;
-            if (pet.ContainsKey(target)) pet[target] = obj->spawnerId;
-            else pet.Add(target, obj->spawnerId);
-            PluginLog.Debug($"{target:X}:{obj->bNPCName}:{obj->spawnerId:X}");
-            NpcSpawnHook.Original(target, ptr);
-        }
-
-        private void ReceiveActorControlSelf(uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10)
-        {
-            ActorControlSelfHook.Original(entityId, id, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
-            if (entityId < 0x40000000) return;
-
-            if (entityId > 0 && id == 23)
-            { 
-                PluginLog.Debug($"{entityId:X}:{id}:{arg0}:{arg1}:{arg2}:{arg3:X}:");
-                if (arg0 != 0)
-                {
-                    if (Potency.BuffToAction.TryGetValue(arg0, out var actionId))
-                    {
-                        if (arg3 > 0x40000000) pet.TryGetValue(arg3, out arg3);
-                        Battles[^1].AddEvent(3, arg3, entityId, actionId, arg2);
-                    }
-
-                }
-                else Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg2);
-            }
-        }
-
-        private unsafe void ReceiveAbiltyEffect(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail)
-        {
-            byte targetCount = *(byte*)(effectHeader + 0x21);
-            if (targetCount is <=8 and >1)
-            {
-                Ability(effectHeader, (uint)sourceId,8);
-            }
-            if (targetCount is >8 and<=16)
-            {
-                Ability(effectHeader, (uint)sourceId, 16);
-            }
-            ReceivAblityHook.Original(sourceId,sourceCharacter,pos,effectHeader,effectArray,effectTrail);
-        }
-
-        private void Effect(uint sourceId, IntPtr sourceCharacter)
-        {
-            Ability(sourceCharacter, sourceId, 1);
-            EffectEffectHook.Original(sourceId,sourceCharacter);
+            NpcSpawnHook.Original(a, target, ptr);
+            var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
+            if (pet.ContainsKey(target)) pet[target] = obj.spawnerId;
+            else pet.Add(target, obj.spawnerId);
+            PluginLog.Debug($"{target:X}:{obj.spawnerId:X}");
         }
 
         public void Dispose()
         {
             DalamudApi.GameNetwork.NetworkMessage -= NetWork;
             PluginUi?.Dispose();
-            foreach (var (id,texture) in Icon)
-            {
-                texture?.Dispose();
-            }
+            foreach (var (id, texture) in Icon) texture?.Dispose();
+
             ActorControlSelfHook.Disable();
             EffectEffectHook.Disable();
-            ReceivAblityHook.Disable();
+            ReceivAbilityHook.Disable();
             NpcSpawnHook.Disable();
             CastHook.Disable();
             DalamudApi.Dispose();
         }
 
-        //[Command("/cehelper")]
-        //[HelpMessage("Show config window of CEHelper.")]
+        [Command("/act")]
+        [HelpMessage("显示Debug窗口.")]
         private void ToggleConfig(string command, string args)
         {
             PluginUi.DrawConfigUI();

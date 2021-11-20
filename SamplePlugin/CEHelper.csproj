@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <AssemblyVersion>0.0.0.2</AssemblyVersion>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <Description>Damage Calulator plugin.</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/goatcorp/SamplePlugin</PackageProjectUrl>

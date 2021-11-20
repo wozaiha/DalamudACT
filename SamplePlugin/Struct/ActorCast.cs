@@ -1,6 +1,6 @@
 ﻿namespace ACT.Struct
 {
-    struct ActorCast
+    internal struct ActorCast
     {
         public ushort action_id;
         public byte skillType;
@@ -17,4 +17,3 @@
         public ushort unknown_3;
     }
 };
-
