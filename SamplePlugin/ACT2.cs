@@ -233,9 +233,16 @@ namespace ACT
                 ActiveDots.Clear();
                 var npc = (BattleNpc)target;
                 foreach (var status in npc.StatusList)
+                {
+                    PluginLog.Debug($"Check Dot on {id:X}:{status.StatusId}:{status.SourceID}");
                     if (Potency.DotPot.ContainsKey(status.StatusId))
+                    {
+                        var source = status.SourceID;
+                        if (status.SourceID > 0x40000000) pet.TryGetValue(source, out source);
                         ActiveDots.Add(DotToActive(new Dot()
-                            { BuffId = status.StatusId, Source = status.SourceID, Target = id }));
+                            { BuffId = status.StatusId, Source = source, Target = id }));
+                    }
+                }
 
                 return true;
             }
