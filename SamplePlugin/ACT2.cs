@@ -40,7 +40,7 @@ namespace ACT
         private Hook<ReceiveAbiltyDelegate> ReceivAblityHook;
 
         private delegate void ActorControlSelfDelegate(uint entityId, uint id, uint arg0, uint arg1, uint arg2,
-            uint arg3, uint arg4, uint arg5, UInt64 targetId, byte a10);
+            uint arg3, uint arg4, uint arg5, ulong targetId, byte a10);
 
         private Hook<ActorControlSelfDelegate> ActorControlSelfHook;
 
@@ -124,7 +124,7 @@ namespace ACT
                     7442 => 1.5f / casttime,
                     16555 => 1.5f / casttime,
                     3577 => 2.8f / casttime,
-                    _ => 2.5f / casttime,
+                    _ => 2.5f / casttime
                 };
                 if (DamageDic.ContainsKey(objectId) &&
                     (DamageDic[objectId].Speed > muti || DamageDic[objectId].Speed == 1))
@@ -201,7 +201,7 @@ namespace ACT
                 return new Dot()
                 {
                     BuffId = (uint)(active >> 64),
-                    Source = (uint)(active >> 32 & 0xFFFFFFFF),
+                    Source = (uint)((active >> 32) & 0xFFFFFFFF),
                     Target = (uint)(active & 0xFFFFFFFF)
                 };
             }
@@ -213,10 +213,7 @@ namespace ACT
 
             public float PDD(uint actor)
             {
-                if (!DamageDic[actor].Damages.TryGetValue(DamageDic[actor].PotSkill, out var dmg))
-                {
-                    dmg = 1;
-                }
+                if (!DamageDic[actor].Damages.TryGetValue(DamageDic[actor].PotSkill, out var dmg)) dmg = 1;
 
                 return dmg * DamageDic[actor].Speed / DamageDic[actor].SkillPotency;
             }
@@ -233,13 +230,9 @@ namespace ACT
                 ActiveDots.Clear();
                 var npc = (BattleNpc)target;
                 foreach (var status in npc.StatusList)
-                {
                     if (Potency.DotPot.ContainsKey(status.StatusId))
-                    {
                         ActiveDots.Add(DotToActive(new Dot()
                             { BuffId = status.StatusId, Source = status.SourceID, Target = id }));
-                    }
-                }
 
                 return true;
             }
@@ -271,11 +264,11 @@ namespace ACT
             var effect = (EffectEntry*)(ptr + sizeof(Header));
             var target = (ulong*)(ptr + sizeof(Header) + 8 * sizeof(EffectEntry) * length);
             PluginLog.Debug($"-----------------------Ability{length}------------------------------");
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 if (*target == 0x0) break;
                 //PluginLog.Debug($"{*target:X}");
-                for (int j = 0; j < 8; j++)
+                for (var j = 0; j < 8; j++)
                 {
                     if (effect->type == 3)
                     {
@@ -305,22 +298,8 @@ namespace ACT
             if (source > 0x40000000) return;
             PluginLog.Debug($"Cast:{data.skillType}:{data.action_id}:{data.cast_time}");
             if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
-            {
-                if (Battles[^1].DamageDic.TryGetValue(source, out var damage))
-                {
+                if (Battles[^1].DamageDic.TryGetValue(source, out _))
                     Battles[^1].AddSS(source, data.cast_time, data.action_id);
-                }
-
-                // if (data.action_id == 3577) //火3 天语
-                // {
-                //     Battles[^1].DamageDic[source].Special = DalamudApi.ClientState.LocalPlayer?.Level switch
-                //     {
-                //         >= 78 => 1.15f,
-                //         >= 56 => 1.10f,
-                //         _ => 1f
-                //     };
-                // }
-            }
 
             if (data.action_id == 7489) //彼岸花 回天
             {
@@ -351,11 +330,12 @@ namespace ACT
             if (buffID != 0)
             {
                 if (Potency.BuffToAction.TryGetValue(buffID, out var actionId))
-                {
                     Battles[^1].AddEvent(3, sourceId, entityId, actionId, damage);
-                }
             }
-            else Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, damage);
+            else
+            {
+                Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, damage);
+            }
         }
 
         private unsafe void ReceiveAbilityEffect(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader,
@@ -402,7 +382,6 @@ namespace ACT
             }
 
             if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
-            {
                 if (DalamudApi.ClientState.LocalPlayer != null &&
                     (DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) != 0)
                 {
@@ -413,7 +392,6 @@ namespace ACT
                     PluginUi.choosed = Battles.Count - 1;
                     SearchForPet();
                 }
-            }
         }
 
         private void NetWork(IntPtr dataPtr, ushort opCode, uint sourceActorId, uint targetActorId,
@@ -449,10 +427,7 @@ namespace ACT
         {
             DalamudApi.Initialize(this, pluginInterface);
 
-            for (uint i = 62100; i < 62141; i++)
-            {
-                Icon.Add(i - 62100, DalamudApi.DataManager.GetImGuiTextureHqIcon(i));
-            }
+            for (uint i = 62100; i < 62141; i++) Icon.Add(i - 62100, DalamudApi.DataManager.GetImGuiTextureHqIcon(i));
 
             Icon.Add(99, DalamudApi.DataManager.GetImGuiTextureHqIcon(103)); //LB
 
@@ -499,10 +474,7 @@ namespace ACT
         {
             DalamudApi.GameNetwork.NetworkMessage -= NetWork;
             PluginUi?.Dispose();
-            foreach (var (id, texture) in Icon)
-            {
-                texture?.Dispose();
-            }
+            foreach (var (id, texture) in Icon) texture?.Dispose();
 
             ActorControlSelfHook.Disable();
             EffectEffectHook.Disable();

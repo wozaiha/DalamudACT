@@ -5,7 +5,7 @@ namespace ACT.Struct
     public struct ActorControl
     {
         [StructLayout(LayoutKind.Explicit, Size = 24)]
-        public struct  ActorControlStruct
+        public struct ActorControlStruct
         {
             [FieldOffset(0x0)] public ushort category;
             [FieldOffset(0x2)] public ushort padding;
@@ -19,6 +19,5 @@ namespace ACT.Struct
             //奇怪的Dot     23:????:BuffID:0003:伤害:ActorID:0
             //效果结束      21:????:BuffId:0000:ActorID:0:0
         }
-
     }
 }

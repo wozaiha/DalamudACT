@@ -16,8 +16,7 @@ namespace ACT
 
         // the below exist just to make saving less cumbersome
 
-        [NonSerialized]
-        private DalamudPluginInterface? pluginInterface;
+        [NonSerialized] private DalamudPluginInterface? pluginInterface;
 
         public void Initialize(DalamudPluginInterface pluginInterface)
         {
@@ -26,7 +25,7 @@ namespace ACT
 
         public void Save()
         {
-            this.pluginInterface!.SavePluginConfig(this);
+            pluginInterface!.SavePluginConfig(this);
         }
 
         public int Version { get; set; }
