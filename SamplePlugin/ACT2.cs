@@ -151,8 +151,11 @@ namespace ACT
                     {
                         if (DamageDic[from].PotSkill != id)
                         {
-                            DamageDic[from].PotSkill = id;
-                            DamageDic[from].SkillPotency = pot * Potency.Muti[DamageDic[from].JobId];
+                            if (id >10)
+                            {
+                                DamageDic[from].PotSkill = id;
+                                DamageDic[from].SkillPotency = pot * Potency.Muti[DamageDic[from].JobId];
+                            }
                         }
                         else
                         {
@@ -442,6 +445,8 @@ namespace ACT
 
             terrySheet = DalamudApi.DataManager.GetExcelSheet<TerritoryType>()!;
             sheet = DalamudApi.DataManager.GetExcelSheet<Action>()!;
+
+            #region Hook
             {
                 EffectEffectHook = new Hook<EffectDelegate>(
                     DalamudApi.SigScanner.ScanText(
@@ -463,6 +468,9 @@ namespace ACT
                     DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), StartCast);
                 CastHook.Enable();
             }
+            
+            #endregion
+
             DalamudApi.GameNetwork.NetworkMessage += NetWork;
 
             PluginUi = new PluginUI(this);

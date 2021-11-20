@@ -185,7 +185,6 @@ namespace ACT
             //PluginLog.Information($"{_plugin.Battles[^1].Name.Count}");
             foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
             {
-                var buff = (uint)(active >> 32);
                 var source = (uint)(active & 0xFFFFFFFF);
                 var dmg = _plugin.Battles[choosed].PDD(source) * potency;
                 totaldotSim += dmg;
@@ -230,6 +229,13 @@ namespace ACT
             ImGui.Text("总计");
             ImGui.SameLine(120);
             ImGui.Text(((float)total / seconds).ToString("0.0"));
+
+            if (!float.IsInfinity(totaldotSim) && (totaldotSim != 0))
+            {
+                ImGui.Text("Δ");
+                ImGui.SameLine(120);
+                ImGui.Text($"{totaldotSim * 100 / _plugin.Battles[choosed].TotalDotDamage - 100:F2}%%");
+            }
             ImGui.End();
         }
 
