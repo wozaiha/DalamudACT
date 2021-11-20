@@ -138,6 +138,7 @@ namespace ACT
                     PluginLog.Error($"Unknown Id {from:X}");
                     return;
                 }
+                PluginLog.Debug($"AddEvent:{kind}:{from:X}:{target:X}:{id}:{damage}");
 
                 if (!Name.ContainsKey(from)) AddPlayer(from);
                 //PluginLog.Log($"{Name.Count}");
@@ -320,19 +321,20 @@ namespace ACT
             NpcSpawnHook.Original(target, ptr);
         }
 
-        private void ReceiveActorControlSelf(uint entityId, uint id, uint buffID, uint arg1, uint damage, uint sourceId,
+        private void ReceiveActorControlSelf(uint entityId, uint type, uint buffID, uint direct, uint damage, uint sourceId,
             uint arg4, uint arg5, ulong targetId, byte a10)
         {
-            ActorControlSelfHook.Original(entityId, id, buffID, arg1, damage, sourceId, arg4, arg5, targetId, a10);
+            PluginLog.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:{buffID}:{direct}:{damage}:{sourceId:X}:");
+            ActorControlSelfHook.Original(entityId, type, buffID, direct, damage, sourceId, arg4, arg5, targetId, a10);
             if (entityId < 0x40000000) return;
             if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
             if (sourceId > 0x40000000) return;
-            if (entityId <= 0 || id != 23) return;
-            PluginLog.Debug($"{entityId:X}:{id}:{buffID}:{arg1}:{damage}:{sourceId:X}:");
+            if (type != 23) return;
+            
             if (buffID != 0)
             {
-                if (Potency.BuffToAction.TryGetValue(buffID, out var actionId))
-                    Battles[^1].AddEvent(3, sourceId, entityId, actionId, damage);
+                if (Potency.BuffToAction.TryGetValue(buffID, out buffID))
+                    Battles[^1].AddEvent(3, sourceId, entityId, buffID, damage);
             }
             else
             {
