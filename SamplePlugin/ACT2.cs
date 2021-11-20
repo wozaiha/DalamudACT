@@ -326,7 +326,6 @@ namespace ACT
             if (pet.ContainsKey(target)) pet[target] = obj.spawnerId;
             else pet.Add(target, obj.spawnerId);
             PluginLog.Debug($"{target:X}:{obj.spawnerId:X}");
-            NpcSpawnHook.Original(target, ptr);
         }
 
         private void ReceiveActorControlSelf(uint entityId, uint type, uint buffID, uint direct, uint damage, uint sourceId,

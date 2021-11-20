@@ -105,9 +105,9 @@ namespace ACT
                 ImGui.Text(((float)dmg / _plugin.Battles[choosed].Duration()).ToString("F1"));
             }
 
-            ImGui.Separator();
-
             if (!float.IsInfinity(totalDotSim) && totalDotSim != 0)
+            {
+                ImGui.Separator();
                 foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
                 {
                     var buff = (uint)(active >> 32);
@@ -126,6 +126,7 @@ namespace ACT
                             potency / totalDotSim / _plugin.Battles[choosed].Duration()).ToString("F1"));
                     }
                 }
+            }
 
             ImGui.EndTooltip();
         }
@@ -197,7 +198,7 @@ namespace ACT
             {
                 if (_plugin.Icon.TryGetValue(_plugin.Battles[choosed].DamageDic[actor].JobId, out var icon))
                 {
-                    ImGui.Image(icon.ImGuiHandle, new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+                    ImGui.Image(icon!.ImGuiHandle, new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
                     ImGui.SameLine();
                 }
 
