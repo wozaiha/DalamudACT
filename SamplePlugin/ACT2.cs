@@ -91,11 +91,11 @@ namespace ACT
             public long TotalDotDamage;
 
 
-            public float Duration()
+            public long Duration()
             {
                 return (EndTime - StartTime) switch
                 {
-                    <= 0 => 0.01f, //战斗中
+                    <= 0 => 1, //战斗中
                     _ => EndTime - StartTime //战斗结束
                 };
             }

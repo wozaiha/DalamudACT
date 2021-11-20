@@ -150,10 +150,9 @@ namespace ACT
                 _plugin.Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds();
 
             var seconds = _plugin.Battles[choosed].Duration();
-            if (seconds is > 3600 or < 1)
+            if (seconds is > 3600 or <= 1)
             {
                 ImGui.Text($"00:00");
-                seconds = 1;
             }
             else
             {
@@ -338,5 +337,5 @@ namespace ACT
         }
     }
 }
-// 4C2D6D72 BuffId
-//11C3DEB8 Source
+// 4C2D6D72 BUFFID
+//11C3DEB8 SOURCE
