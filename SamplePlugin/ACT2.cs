@@ -44,7 +44,7 @@ namespace ACT
 
         private Hook<ActorControlSelfDelegate> ActorControlSelfHook;
 
-        private delegate void NpcSpawnDelegate(uint sourceId, IntPtr sourceCharacter);
+        private delegate void NpcSpawnDelegate(Int64 a, uint sourceId, IntPtr sourceCharacter);
 
         private Hook<NpcSpawnDelegate> NpcSpawnHook;
 
@@ -319,14 +319,7 @@ namespace ACT
             }
         }
 
-        private void NpcSpawn(uint target, IntPtr ptr)
-        {
-            var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
-            NpcSpawnHook.Original(target, ptr);
-            if (pet.ContainsKey(target)) pet[target] = obj.spawnerId;
-            else pet.Add(target, obj.spawnerId);
-            PluginLog.Debug($"{target:X}:{obj.spawnerId:X}");
-        }
+
 
         private void ReceiveActorControlSelf(uint entityId, uint type, uint buffID, uint direct, uint damage, uint sourceId,
             uint arg4, uint arg5, ulong targetId, byte a10)
@@ -466,8 +459,8 @@ namespace ACT
                 ActorControlSelfHook.Enable();
                 NpcSpawnHook = new Hook<NpcSpawnDelegate>(
                     DalamudApi.SigScanner.ScanText(
-                        "E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 2D ?? ?? ?? ??"),
-                    NpcSpawn);
+                        "E8 ?? ?? ?? ?? 48 8B 5C 24 ?? 48 83 C4 20 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 57 48 83 EC 20 48 8B DA 8B F9 "),
+                    ReviceNpcSpawn);
                 NpcSpawnHook.Enable();
                 CastHook = new Hook<CastDelegate>(
                     DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), StartCast);
@@ -479,6 +472,16 @@ namespace ACT
             DalamudApi.GameNetwork.NetworkMessage += NetWork;
 
             PluginUi = new PluginUI(this);
+        }
+
+        private void ReviceNpcSpawn(Int64 a, uint target, IntPtr ptr)
+        {
+            
+            var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
+            NpcSpawnHook.Original(a, target, ptr);
+            if (pet.ContainsKey(target)) pet[target] = obj.spawnerId;
+            else pet.Add(target, obj.spawnerId);
+            PluginLog.Debug($"{target:X}:{obj.spawnerId:X}");
         }
 
         public void Dispose()
