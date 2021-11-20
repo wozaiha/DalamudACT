@@ -261,7 +261,7 @@ namespace ACT
 
                 if (pet.ContainsKey(owner)) pet[owner] = obj.ObjectId;
                 else pet.Add(obj.ObjectId, owner);
-                //PluginLog.Information($"{owner:X} {obj.ObjectId:X}");
+                PluginLog.Debug($"SearchForPet:{obj.ObjectId:X}:{owner:X}");
             }
         }
 
@@ -319,12 +319,13 @@ namespace ACT
             }
         }
 
-        private unsafe void NpcSpawn(uint target, IntPtr ptr)
+        private void NpcSpawn(uint target, IntPtr ptr)
         {
-            var obj = (NpcSpawn*)ptr;
-            if (pet.ContainsKey(target)) pet[target] = obj->spawnerId;
-            else pet.Add(target, obj->spawnerId);
-            PluginLog.Debug($"{target:X}:{obj->bNPCName}:{obj->spawnerId:X}");
+            var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
+            NpcSpawnHook.Original(target, ptr);
+            if (pet.ContainsKey(target)) pet[target] = obj.spawnerId;
+            else pet.Add(target, obj.spawnerId);
+            PluginLog.Debug($"{target:X}:{obj.spawnerId:X}");
             NpcSpawnHook.Original(target, ptr);
         }
 
