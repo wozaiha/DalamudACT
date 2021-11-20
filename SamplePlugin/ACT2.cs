@@ -24,7 +24,7 @@ namespace ACT
 
         public Configuration Configuration;
         private PluginUI PluginUi;
-        private Dictionary<uint, uint> pet = new();
+        private static Dictionary<uint, uint> pet = new();
         public Dictionary<uint, TextureWrap?> Icon = new();
         public List<ACTBattle> Battles = new(5);
         private ExcelSheet<TerritoryType> terrySheet;
@@ -37,7 +37,7 @@ namespace ACT
         private delegate void ReceiveAbiltyDelegate(int sourceId, IntPtr sourceCharacter, IntPtr pos,
             IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
 
-        private Hook<ReceiveAbiltyDelegate> ReceivAblityHook;
+        private Hook<ReceiveAbiltyDelegate> ReceivAbilityHook;
 
         private delegate void ActorControlSelfDelegate(uint entityId, uint id, uint arg0, uint arg1, uint arg2,
             uint arg3, uint arg4, uint arg5, ulong targetId, byte a10);
@@ -151,6 +151,8 @@ namespace ACT
                     {
                         var dot = ActiveToDot(active);
                         var buff = ActiveToUlong(active);
+                        if (dot.Source > 0x40000000) pet.TryGetValue(dot.Source, out dot.Source);
+                        if (dot.Source > 0x40000000) continue;
                         if (!DamageDic.ContainsKey(dot.Source)) AddPlayer(dot.Source);
                         if (PlayerDotPotency.ContainsKey(buff))
                             PlayerDotPotency[buff] += Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special;
@@ -358,7 +360,7 @@ namespace ACT
                     break;
             }
 
-            ReceivAblityHook.Original(sourceId, sourceCharacter, pos, effectHeader, effectArray, effectTrail);
+            ReceivAbilityHook.Original(sourceId, sourceCharacter, pos, effectHeader, effectArray, effectTrail);
         }
 
         private void Effect(uint sourceId, IntPtr ptr)
@@ -446,10 +448,10 @@ namespace ACT
                     DalamudApi.SigScanner.ScanText(
                         "48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
                 EffectEffectHook.Enable();
-                ReceivAblityHook = new Hook<ReceiveAbiltyDelegate>(
+                ReceivAbilityHook = new Hook<ReceiveAbiltyDelegate>(
                     DalamudApi.SigScanner.ScanText("4C 89 44 24 18 53 56 57 41 54 41 57 48 81 EC ?? 00 00 00 8B F9"),
                     ReceiveAbilityEffect);
-                ReceivAblityHook.Enable();
+                ReceivAbilityHook.Enable();
                 ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
@@ -478,7 +480,7 @@ namespace ACT
 
             ActorControlSelfHook.Disable();
             EffectEffectHook.Disable();
-            ReceivAblityHook.Disable();
+            ReceivAbilityHook.Disable();
             NpcSpawnHook.Disable();
             CastHook.Disable();
             DalamudApi.Dispose();
