@@ -338,3 +338,5 @@ namespace ACT
         }
     }
 }
+// 4C2D6D72 BuffId
+//11C3DEB8 Source
