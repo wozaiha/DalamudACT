@@ -134,7 +134,7 @@ namespace ACT
         private void DrawACT()
         {
             if (_plugin.Battles.Count < 1) return;
-            ImGui.Begin("Damage", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar);
+            ImGui.Begin("Damage Beta", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar);
 
             ImGui.BeginMenuBar();
             var items = new[] { "", "", "", "" };
@@ -338,5 +338,3 @@ namespace ACT
         }
     }
 }
-// 4C2D6D72 BUFFID
-//11C3DEB8 SOURCE

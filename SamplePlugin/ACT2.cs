@@ -20,7 +20,7 @@ namespace ACT
 {
     public class ACT : IDalamudPlugin
     {
-        public string Name => "ACT";
+        public string Name => "ACT Beta";
 
         public Configuration Configuration;
         private PluginUI PluginUi;
