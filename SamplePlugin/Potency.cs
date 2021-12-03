@@ -4,7 +4,7 @@ namespace ACT
 {
     public class Potency
     {
-        public static float[] Muti = new[]
+        public static readonly float[] Muti = new[]
         {
             0f, //冒险者
             2.24f / 3f, //剑术师
@@ -44,10 +44,12 @@ namespace ACT
             1f, //赤魔法师
             0f, //青魔法师
             2.8f / 3f, //绝枪战士
-            1.04f //舞者
+            1.04f, //舞者
+            3.2f / 3f, //Reaper
+            1f //Sage
         };
 
-        public static uint[] BaseSkill =
+        public static readonly uint[] BaseSkill =
         {
             0, //冒险者
             7, //剑术师
@@ -87,7 +89,9 @@ namespace ACT
             7, //赤魔法师
             7, //青魔法师
             7, //绝枪战士
-            7 //舞者
+            7, //舞者
+            7, //Reaper
+            24283 //Sage
         };
 
         public static Dictionary<uint, float> SkillPot = new()
@@ -98,19 +102,18 @@ namespace ACT
             { 3568, 230 }, //垒石
             { 7431, 270 }, //崩石
             { 16533, 290 }, //闪耀
-            //{ ?, 310 }, //闪耀3
+            { 25859, 310 }, //闪耀3
             { 3584, 220 }, //气炎法
             { 7435, 240 }, //魔炎法
             { 16541, 255 }, //死炎法
-            //{ ?, 295 }, //炎法4
+            { 25865, 295 }, //炎法4
             { 3598, 160 }, //灾星
             { 7442, 190 }, //祸星
             { 16555, 230 }, //煞星
-            //{ ?, 250 }, //落星
-            //{? , 300 }, //Dosis
-            //{? , 320 }, //Dosis2
-            //{? , 330 }, //Dosis3
-
+            { 25871, 250 }, //落星
+            { 24283, 300 }, //Dosis
+            { 24306, 320 }, //Dosis2
+            { 24312, 330 } //Dosis3
         };
 
         public static Dictionary<uint, uint> BuffToAction = new()
@@ -118,7 +121,7 @@ namespace ACT
             { 749, 3639 }, //腐秽大地
             { 501, 2270 }, //土遁之术
             { 861, 2878 }, //野火
-            { 1869, 16523 } //风宝宝 待更新
+            { 2706, 25837 } //风宝宝
         };
 
         public static Dictionary<uint, uint> DotPot = new()
@@ -135,9 +138,9 @@ namespace ACT
             { 1895, 70 }, //蛊毒法
             { 843, 50 }, //炽灼
             { 1881, 55 }, //焚灼
-            //{ ?, 40 }, //Eukrasian Dosis
-            //{ ?, 60 }, //Eukrasian Dosis2
-            //{ ?, 70 }, //Eukrasian Dosis3
+            { 2614, 40 }, //Eukrasian Dosis
+            { 2615, 60 }, //Eukrasian Dosis2
+            { 2616, 70 }, //Eukrasian Dosis3
 
             { 246, 70 }, //破碎拳
             { 118, 40 }, //樱花怒放
@@ -153,11 +156,9 @@ namespace ACT
             { 161, 35 }, //闪雷 1
             { 163, 35 }, //暴雷 3
             { 162, 15 }, //震雷 2
-            { 1210, 20 }, //霹雷 AOE 4
+            { 1210, 20 } //霹雷 AOE 4
 
             //喷火器和喷毒
-            
-            //{ 314, 13 } //风Dot 大概不用算？
         };
     }
 
@@ -202,8 +203,8 @@ namespace ACT
         BLU = 36,
         GNB = 37,
 
-        DNC = 38
-        //SAG = 39,
-        //REP = 40
+        DNC = 38,
+        RPR = 39,
+        SGE = 40
     }
 }

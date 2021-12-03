@@ -120,11 +120,8 @@ namespace ACT
                 {
                     7 => 1,
                     8 => 1,
-                    3598 => 1.5f / casttime,
-                    7442 => 1.5f / casttime,
-                    16555 => 1.5f / casttime,
                     3577 => 2.8f / casttime,
-                    _ => 2.5f / casttime
+                    _ => 1.5f / casttime
                 };
                 if (DamageDic.ContainsKey(objectId) &&
                     (DamageDic[objectId].Speed > muti || DamageDic[objectId].Speed == 1))
