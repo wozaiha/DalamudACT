@@ -1,4 +1,4 @@
-A damage caculator that can be run on Dalamud.(should be useable in both global/CN 5.X version)
+A damage caculator that can be run on Dalamud.(should be useable in both global 6.00 version)
 Now WIP so you will meet problems like crashing & bugs.
 Only use it if you dont want run a standalone ACT.
 
