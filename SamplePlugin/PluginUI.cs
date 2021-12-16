@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Logging;
 using ImGuiNET;
@@ -101,7 +102,7 @@ namespace ACT
                         new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
                 ImGui.SameLine(30);
                 ImGui.Text(sheet.GetRow(action)!.Name);
-                ImGui.SameLine(120);
+                ImGui.SameLine(150);
                 ImGui.Text(((float)dmg / _plugin.Battles[choosed].Duration()).ToString("F1"));
             }
 
@@ -136,17 +137,18 @@ namespace ACT
             if (_plugin.Battles.Count < 1) return;
             ImGui.Begin("Damage Beta", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar);
 
+            var x = ImGui.GetWindowWidth() - 100;
             ImGui.BeginMenuBar();
             var items = new[] { "", "", "", "" };
             for (var i = 0; i < _plugin.Battles.Count - 1; i++)
                 items[i] =
                     $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime).ToLocalTime():t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime).ToLocalTime():t} {_plugin.Battles[i].Zone}";
             // PluginLog.Information(items[i]);
-            items[_plugin.Battles.Count - 1] = $"当前 {_plugin.Battles[_plugin.Battles.Count - 1].Zone}";
+            items[_plugin.Battles.Count - 1] = $"Current {_plugin.Battles[_plugin.Battles.Count - 1].Zone}";
             ImGui.SetNextItemWidth(160);
             ImGui.Combo("##battles", ref choosed, items, _plugin.Battles.Count);
             if (DalamudApi.ClientState.LocalPlayer != null &&
-                (DalamudApi.ClientState.LocalPlayer.StatusFlags & StatusFlags.InCombat) != 0 &&
+                DalamudApi.Condition[ConditionFlag.InCombat] &&
                 _plugin.Battles[^1].StartTime != 0)
                 _plugin.Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds();
 
@@ -187,11 +189,10 @@ namespace ACT
 
             foreach (var (actor, damage) in _plugin.Battles[choosed].DamageDic)
                 if (!float.IsInfinity(totaldotSim) && totaldotSim != 0 &&
-                    DotDictionary.ContainsKey(actor) && _plugin.Battles[choosed].Level >= 60 &&
+                    DotDictionary.ContainsKey(actor) && _plugin.Battles[choosed].Level >= 64 &&
                     DotDictionary.TryGetValue(actor, out var dotDamage))
                     dmgList.Add((actor, damage.Damages[0] + (long)dotDamage));
                 else dmgList.Add((actor, damage.Damages[0]));
-
 
             dmgList.Sort((pair1, pair2) => pair2.Item2.CompareTo(pair1.Item2));
             foreach (var (actor, value) in dmgList)
@@ -203,30 +204,30 @@ namespace ACT
                 }
 
                 ImGui.Text(_plugin.Battles[choosed].Name[actor]);
-                ImGui.SameLine(120);
+                ImGui.SameLine(x);
                 ImGui.Text(((float)value / seconds).ToString("0.0"));
                 if (ImGui.IsItemHovered()) DrawDetails(actor, totaldotSim);
                 total += value;
             }
 
             if (_plugin.Battles[choosed].TotalDotDamage != 0 && float.IsInfinity(totaldotSim) ||
-                _plugin.Battles[choosed].Level < 60)
+                _plugin.Battles[choosed].Level < 64)
             {
                 ImGui.Text("DOT");
-                ImGui.SameLine(120);
+                ImGui.SameLine(x);
                 ImGui.Text(((float)_plugin.Battles[choosed].TotalDotDamage / _plugin.Battles[choosed].Duration())
                     .ToString("0.0"));
                 total += _plugin.Battles[choosed].TotalDotDamage;
             }
 
-            ImGui.Text("总计");
-            ImGui.SameLine(120);
+            ImGui.Text("Total");
+            ImGui.SameLine(x);
             ImGui.Text(((float)total / seconds).ToString("0.0"));
 
             if (!float.IsInfinity(totaldotSim) && totaldotSim != 0)
             {
                 ImGui.Text("Δ");
-                ImGui.SameLine(120);
+                ImGui.SameLine(x);
                 ImGui.Text($"{totaldotSim * 100 / _plugin.Battles[choosed].TotalDotDamage - 100:F2}%%");
             }
 
@@ -274,7 +275,7 @@ namespace ACT
 
                 if (ImGui.BeginTable("Dots", 5))
                 {
-                    var headers = new string[] { "BuffId", "Source", "Potency", "预测DPS", "分解DPS" };
+                    var headers = new string[] { "BuffId", "Source", "Potency", "Simulated DPS", "Split DPS" };
 
                     foreach (var t in headers) ImGui.TableSetupColumn(t);
 

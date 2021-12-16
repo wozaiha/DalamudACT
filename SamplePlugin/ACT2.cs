@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ACT.Struct;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
@@ -100,11 +101,11 @@ namespace ACT
                 };
             }
 
-            private void AddPlayer(uint objectId)
+            private bool AddPlayer(uint objectId)
             {
                 var actor = DalamudApi.ObjectTable.FirstOrDefault(x =>
                     x.ObjectId == objectId && x.ObjectKind == ObjectKind.Player);
-                if (actor == default || actor.Name.TextValue == "") return;
+                if (actor == default || actor.Name.TextValue == "") return false;
                 Name.Add(objectId, actor.Name.TextValue);
                 DamageDic.Add(objectId, new Damage());
                 DamageDic[objectId].Damages = new Dictionary<uint, long> { { 0, 0 } };
@@ -112,6 +113,7 @@ namespace ACT
                 DamageDic[objectId].PotSkill = Potency.BaseSkill[DamageDic[objectId].JobId];
                 DamageDic[objectId].SkillPotency = 0;
                 DamageDic[objectId].Speed = 1f;
+                return true;
             }
 
             public void AddSS(uint objectId, float casttime, uint actionId)
@@ -130,14 +132,23 @@ namespace ACT
 
             public void AddEvent(int kind, uint from, uint target, uint id, long damage)
             {
-                if (from > 0x40000000 && from != 0xE0000000)
+                if (!DalamudApi.Condition[ConditionFlag.BoundByDuty] && !DalamudApi.Condition[ConditionFlag.InCombat]) return;
+                if (from > 0x40000000 && from != 0xE0000000 || from == 0x0)
                 {
                     PluginLog.Error($"Unknown Id {from:X}");
                     return;
                 }
                 PluginLog.Debug($"AddEvent:{kind}:{from:X}:{target:X}:{id}:{damage}");
 
-                if (!Name.ContainsKey(from)) AddPlayer(from);
+                if (!Name.ContainsKey(from) && from != 0xE0000000)
+                {
+                    var added = AddPlayer(from);
+                    if (!added)
+                    {
+                        PluginLog.Error($"{from:X} is not found");
+                        return;
+                    }
+                }
                 //PluginLog.Log($"{Name.Count}");
 
                 //DOT 伤害
@@ -152,6 +163,7 @@ namespace ACT
                         if (dot.Source > 0x40000000) pet.TryGetValue(dot.Source, out dot.Source);
                         if (dot.Source > 0x40000000) continue;
                         if (!DamageDic.ContainsKey(dot.Source)) AddPlayer(dot.Source);
+                        if (!DamageDic.ContainsKey(dot.Source)) continue;
                         if (PlayerDotPotency.ContainsKey(buff))
                             PlayerDotPotency[buff] += Potency.DotPot[dot.BuffId] * (uint)DamageDic[dot.Source].Special;
                         else
@@ -265,7 +277,7 @@ namespace ACT
         private unsafe void Ability(IntPtr ptr, uint sourceId, int length)
         {
             if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
-            if (sourceId > 0x40000000) return;
+            if (sourceId is > 0x40000000 or 0x0) return;
 
             var header = Marshal.PtrToStructure<Header>(ptr);
             var effect = (EffectEntry*)(ptr + sizeof(Header));
@@ -281,8 +293,8 @@ namespace ACT
                     {
                         long damage = effect->param0;
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
+                        PluginLog.Debug($"EffectEntry:{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
                         Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage);
-                        PluginLog.Debug($"{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
                     }
 
                     //else if (effect->type == 0xE)
@@ -303,7 +315,7 @@ namespace ACT
             var data = Marshal.PtrToStructure<ActorCast>(ptr);
             CastHook.Original(source, ptr);
             if (source > 0x40000000) return;
-            PluginLog.Debug($"Cast:{data.skillType}:{data.action_id}:{data.cast_time}");
+            PluginLog.Debug($"Cast:{source:X}:{data.skillType}:{data.action_id}:{data.cast_time}");
             if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
                 if (Battles[^1].DamageDic.TryGetValue(source, out _))
                     Battles[^1].AddSS(source, data.cast_time, data.action_id);
@@ -321,7 +333,7 @@ namespace ACT
         private void ReceiveActorControlSelf(uint entityId, uint type, uint buffID, uint direct, uint damage, uint sourceId,
             uint arg4, uint arg5, ulong targetId, byte a10)
         {
-            PluginLog.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:{buffID}:{direct}:{damage}:{sourceId:X}:");
+            //PluginLog.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:{buffID}:{direct}:{damage}:{sourceId:X}:");
             ActorControlSelfHook.Original(entityId, type, buffID, direct, damage, sourceId, arg4, arg5, targetId, a10);
             if (entityId < 0x40000000) return;
             if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
@@ -384,7 +396,7 @@ namespace ACT
 
             if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
                 if (DalamudApi.ClientState.LocalPlayer != null &&
-                    (DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) != 0)
+                    DalamudApi.Condition[ConditionFlag.InCombat])
                 {
                     //开始战斗
                     Battles[^1].StartTime = now;
@@ -476,9 +488,10 @@ namespace ACT
             
             var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
             NpcSpawnHook.Original(a, target, ptr);
+            if (obj.spawnerId == 0xE0000000) return;
             if (pet.ContainsKey(target)) pet[target] = obj.spawnerId;
             else pet.Add(target, obj.spawnerId);
-            PluginLog.Debug($"{target:X}:{obj.spawnerId:X}");
+            PluginLog.Debug($"Spawn:{target:X}:{obj.spawnerId:X}");
         }
 
         public void Dispose()
