@@ -122,7 +122,7 @@ namespace ACT
                             new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight() * 1.2f));
                         ImGui.SameLine(30);
                         ImGui.Text(buffSheet.GetRow(buff)!.Name);
-                        ImGui.SameLine(120);
+                        ImGui.SameLine(150);
                         ImGui.Text((_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(source) *
                             potency / totalDotSim / _plugin.Battles[choosed].Duration()).ToString("F1"));
                     }
@@ -144,7 +144,7 @@ namespace ACT
                 items[i] =
                     $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime).ToLocalTime():t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime).ToLocalTime():t} {_plugin.Battles[i].Zone}";
             // PluginLog.Information(items[i]);
-            items[_plugin.Battles.Count - 1] = $"Current {_plugin.Battles[_plugin.Battles.Count - 1].Zone}";
+            items[_plugin.Battles.Count - 1] = $"Current: {_plugin.Battles[_plugin.Battles.Count - 1].Zone}";
             ImGui.SetNextItemWidth(160);
             ImGui.Combo("##battles", ref choosed, items, _plugin.Battles.Count);
             if (DalamudApi.ClientState.LocalPlayer != null &&
