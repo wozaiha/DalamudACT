@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29709.97
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CEHelper", "SamplePlugin\CEHelper.csproj", "{13C812E9-0D42-4B95-8646-40EEBF30636F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DalamudACT", "SamplePlugin\DalamudACT.csproj", "{13C812E9-0D42-4B95-8646-40EEBF30636F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
