@@ -294,6 +294,7 @@ namespace ACT
                         long damage = effect->param0;
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
                         PluginLog.Debug($"EffectEntry:{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
+                        //if (!Battles[^1].DamageDic.ContainsKey(sourceId)) return;
                         Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage);
                     }
 
@@ -324,6 +325,7 @@ namespace ACT
             {
                 var actor = (PlayerCharacter)DalamudApi.ObjectTable.First(x =>
                     x.ObjectId == source && x.ObjectKind == ObjectKind.Player);
+                if (!Battles[^1].DamageDic.ContainsKey(source)) return;
                 Battles[^1].DamageDic[source].Special = actor.StatusList.Any(x => x.StatusId == 1229) ? 1.5f : 1.0f;
             }
         }
@@ -339,7 +341,7 @@ namespace ACT
             if (sourceId > 0x40000000) pet.TryGetValue(sourceId, out sourceId);
             if (sourceId > 0x40000000) return;
             if (type != 23) return;
-            
+            //if (!Battles[^1].DamageDic.ContainsKey(sourceId)) return;
             if (buffID != 0)
             {
                 if (Potency.BuffToAction.TryGetValue(buffID, out buffID))
