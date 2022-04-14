@@ -92,7 +92,7 @@ namespace ACT
         private void DrawDetails(uint actor, float totalDotSim)
         {
             ImGui.BeginTooltip();
-            var damage = _plugin.Battles[choosed].DamageDic[actor].Damages.ToList();
+            var damage = _plugin.Battles[choosed].DataDic[actor].Damages.ToList();
             damage.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
             foreach (var (action, dmg) in damage)
             {
@@ -162,13 +162,13 @@ namespace ACT
                 ImGui.Text($"{seconds / 60:00}:{seconds % 60:00}");
             }
 
-            ImGui.SameLine(ImGui.GetWindowSize().X - 50);
-            if (ImGui.Button("Reset"))
-            {
-                choosed = 0;
-                _plugin.Battles.Clear();
-                _plugin.Battles.Add(new ACT.ACTBattle(0, 0));
-            }
+            //ImGui.SameLine(ImGui.GetWindowSize().X - 50);
+            //if (ImGui.Button("Reset"))
+            //{
+            //    choosed = 0;
+            //    _plugin.Battles.Clear();
+            //    _plugin.Battles.Add(new (0, 0));
+            //}
 
             ImGui.EndMenuBar();
 
@@ -187,7 +187,7 @@ namespace ACT
                 else DotDictionary.Add(source, dmg);
             }
 
-            foreach (var (actor, damage) in _plugin.Battles[choosed].DamageDic)
+            foreach (var (actor, damage) in _plugin.Battles[choosed].DataDic)
                 if (!float.IsInfinity(totaldotSim) && totaldotSim != 0 &&
                     DotDictionary.ContainsKey(actor) && _plugin.Battles[choosed].Level >= 64 &&
                     DotDictionary.TryGetValue(actor, out var dotDamage))
@@ -197,7 +197,7 @@ namespace ACT
             dmgList.Sort((pair1, pair2) => pair2.Item2.CompareTo(pair1.Item2));
             foreach (var (actor, value) in dmgList)
             {
-                if (_plugin.Icon.TryGetValue(_plugin.Battles[choosed].DamageDic[actor].JobId, out var icon))
+                if (_plugin.Icon.TryGetValue(_plugin.Battles[choosed].DataDic[actor].JobId, out var icon))
                 {
                     ImGui.Image(icon!.ImGuiHandle, new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
                     ImGui.SameLine();
@@ -251,7 +251,7 @@ namespace ACT
 
                     ImGui.TableHeadersRow();
 
-                    foreach (var (actor, damage) in _plugin.Battles[choosed].DamageDic)
+                    foreach (var (actor, damage) in _plugin.Battles[choosed].DataDic)
                     {
                         ImGui.TableNextColumn();
                         ImGui.Text($"{_plugin.Battles[choosed].Name[actor]}");
@@ -321,7 +321,7 @@ namespace ACT
 
                     foreach (var active in _plugin.Battles[choosed].ActiveDots)
                     {
-                        var dot = ACT.ACTBattle.ActiveToDot(active);
+                        var dot = ACTBattle.ActiveToDot(active);
                         ImGui.TableNextColumn();
                         ImGui.Text($"{buffSheet.GetRow(dot.BuffId)!.Name}");
                         ImGui.TableNextColumn();
