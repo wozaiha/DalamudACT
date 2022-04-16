@@ -91,23 +91,48 @@ namespace ACT
         private void DrawDetails(uint actor, float totalDotSim)
         {
             ImGui.BeginTooltip();
+            
+            ImGui.BeginTable("Tooltip", 6,ImGuiTableFlags.Borders);
+            ImGui.TableSetupColumn("###Icon");
+            ImGui.TableSetupColumn("###Name");
+            ImGui.TableSetupColumn("直击");
+            ImGui.TableSetupColumn("暴击");
+            ImGui.TableSetupColumn("直爆");
+            ImGui.TableSetupColumn("    DPS",ImGuiTableColumnFlags.WidthFixed,45f);
+            ImGui.TableHeadersRow();
+            
+
             var damage = _plugin.Battles[choosed].DataDic[actor].Damages.ToList();
-            damage.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
+            damage.Sort((pair1, pair2) => pair2.Value.Damage.CompareTo(pair1.Value.Damage));
             foreach (var (action, dmg) in damage)
             {
                 if (action == 0 || sheet.GetRow(action) == null) continue;
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
                 if (Icon.TryGetValue(action, out var icon))
                     ImGui.Image(icon.ImGuiHandle,
                         new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
-                ImGui.SameLine(30);
+                ImGui.TableNextColumn();
                 ImGui.Text(sheet.GetRow(action)!.Name);
-                ImGui.SameLine(150);
-                ImGui.Text(((float)dmg / _plugin.Battles[choosed].Duration()).ToString("F1"));
+                ImGui.TableNextColumn();
+                ImGui.Text(((float)dmg.D / dmg.swings).ToString("P1") + "%");
+                ImGui.TableNextColumn();
+                ImGui.Text(((float)dmg.C / dmg.swings).ToString("P1") + "%");
+                ImGui.TableNextColumn();
+                ImGui.Text(((float)dmg.DC / dmg.swings).ToString("P1") + "%");
+                ImGui.TableNextColumn();
+                var temp = (float)dmg.Damage / _plugin.Battles[choosed].Duration();
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() - ImGui.CalcTextSize($"{temp,8:F1}").X);
+                ImGui.Text($"{temp,8:F1}");
+                
+
+
             }
+            
 
             if (!float.IsInfinity(totalDotSim) && totalDotSim != 0)
             {
-                ImGui.Separator();
+                ImGui.TableNextRow();
                 foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
                 {
                     var buff = (uint)(active >> 32);
@@ -117,16 +142,25 @@ namespace ACT
                         if (!BuffIcon.ContainsKey(buff))
                             BuffIcon.TryAdd(buff,
                                 DalamudApi.DataManager.GetImGuiTextureHqIcon(buffSheet.GetRow(buff)!.Icon));
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn();
                         ImGui.Image(BuffIcon[buff]!.ImGuiHandle,
                             new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight() * 1.2f));
-                        ImGui.SameLine(30);
+                        ImGui.TableNextColumn();
                         ImGui.Text(buffSheet.GetRow(buff)!.Name);
-                        ImGui.SameLine(150);
-                        ImGui.Text((_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(source) *
-                            potency / totalDotSim / _plugin.Battles[choosed].Duration()).ToString("F1"));
+                        ImGui.TableNextColumn();
+                        ImGui.TableNextColumn();
+                        ImGui.TableNextColumn();
+                        ImGui.TableNextColumn();
+                        var temp = _plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(source) *
+                            potency / totalDotSim / _plugin.Battles[choosed].Duration();
+                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() - ImGui.CalcTextSize($"{temp,8:F1}").X);
+                        ImGui.Text($"{temp,8:F1}");
+                        
                     }
                 }
             }
+            ImGui.EndTable();
 
             ImGui.EndTooltip();
         }
@@ -198,8 +232,8 @@ namespace ACT
                 if (!float.IsInfinity(totaldotSim) && totaldotSim != 0 &&
                     DotDictionary.ContainsKey(actor) && _plugin.Battles[choosed].Level >= 64 &&
                     DotDictionary.TryGetValue(actor, out var dotDamage))
-                    dmgList.Add((actor, damage.Damages[0] + (long)dotDamage));
-                else dmgList.Add((actor, damage.Damages[0]));
+                    dmgList.Add((actor, damage.Damages[0].Damage + (long)dotDamage));
+                else dmgList.Add((actor, damage.Damages[0].Damage));
 
             dmgList.Sort((pair1, pair2) => pair2.Item2.CompareTo(pair1.Item2));
             foreach (var (actor, value) in dmgList)

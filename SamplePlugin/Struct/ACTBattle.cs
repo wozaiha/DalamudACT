@@ -1,4 +1,5 @@
-﻿using Dalamud.Game.ClientState.Conditions;
+﻿using System.Collections;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
@@ -32,12 +33,48 @@ namespace ACT
 
         public class Data
         {
-            public Dictionary<uint, long> Damages = new();
+            public Dictionary<uint, SkillDamage> Damages = new();
             public uint PotSkill;
             public float SkillPotency;
             public uint JobId;
             public float Speed = 1f;
             public float Special = 1f;
+        }
+
+        public class SkillDamage
+        {
+            public long Damage=0;
+            public uint D=0;
+            public uint C=0;
+            public uint DC=0;
+            public uint swings=0;
+
+            public SkillDamage(long damage = 0)
+            {
+                Damage = damage;
+            }
+
+            public void AddDC(byte dc)
+            {
+                switch (dc)
+                {
+                    case 1:
+                        D++;
+                        break;
+                    case 2:
+                        C++;
+                        break;
+                    case 3:
+                        DC++;
+                        break;
+                }
+                swings++;
+            }
+
+            public void AddDamage(long damage)
+            {
+                Damage += damage;
+            }
         }
 
         public long StartTime;
@@ -69,7 +106,8 @@ namespace ACT
             if (actor == default || actor.Name.TextValue == "") return false;
             Name.Add(objectId, actor.Name.TextValue);
             DataDic.Add(objectId, new Data());
-            DataDic[objectId].Damages = new Dictionary<uint, long> {{0, 0}};
+            DataDic[objectId].Damages = new Dictionary<uint, SkillDamage> {{0, new SkillDamage()}};
+
             DataDic[objectId].JobId = ((Character) actor).ClassJob.Id;
             DataDic[objectId].PotSkill = Potency.BaseSkill[DataDic[objectId].JobId];
             DataDic[objectId].SkillPotency = 0;
@@ -91,7 +129,7 @@ namespace ACT
                 DataDic[objectId].Speed = muti;
         }
 
-        public void AddEvent(int kind, uint from, uint target, uint id, long damage)
+        public void AddEvent(int kind, uint @from, uint target, uint id, long damage, byte dc =0)
         {
             if (!DalamudApi.Condition[ConditionFlag.BoundByDuty] &&
                 !DalamudApi.Condition[ConditionFlag.InCombat]) return;
@@ -151,19 +189,17 @@ namespace ACT
                     }
                 }
 
-                if (DataDic[from].Damages.TryGetValue(id, out var dmg))
-                {
-                    dmg += damage;
-                    DataDic[from].Damages[id] = dmg;
-                }
+                if (DataDic[from].Damages.ContainsKey(id))
+                    DataDic[from].Damages[id].AddDamage(damage);
                 else
                 {
-                    DataDic[from].Damages.Add(id, damage);
+                    DataDic[from].Damages.Add(id, new SkillDamage(damage));
                     PluginUI.Icon.TryAdd(id,
                         DalamudApi.DataManager.GetImGuiTextureHqIcon(ActionSheet.GetRow(id)!.Icon));
                 }
-
-                DataDic[from].Damages[0] += damage;
+                DataDic[from].Damages[id].AddDC(dc);
+                DataDic[from].Damages[0].AddDamage(damage);
+                DataDic[from].Damages[0].AddDC(dc);
             }
         }
 
@@ -189,9 +225,9 @@ namespace ACT
 
         public float PDD(uint actor)
         {
-            if (!DataDic[actor].Damages.TryGetValue(DataDic[actor].PotSkill, out var dmg)) dmg = 1;
-
-            return dmg * DataDic[actor].Speed / DataDic[actor].SkillPotency;
+            long result = 1;
+            if (DataDic[actor].Damages.TryGetValue(DataDic[actor].PotSkill, out var dmg)) result = dmg.Damage;
+            return result * DataDic[actor].Speed / DataDic[actor].SkillPotency;
         }
 
         private bool CheckTargetDot(uint id)

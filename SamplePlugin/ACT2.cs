@@ -62,6 +62,7 @@ namespace ACT
             {
                 if (*target == 0x0) break;
                 //PluginLog.Debug($"{*target:X}");
+                PluginLog.Debug($"effect:{effect->type}:{effect->param0}:{effect->param1}:{effect->param2}:{effect->param3}:{effect->param4}:{effect->param5}");
                 for (var j = 0; j < 8; j++)
                 {
                     if (effect->type == 3) //damage
@@ -70,7 +71,7 @@ namespace ACT
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
                         PluginLog.Debug($"EffectEntry:{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
                         //if (!Battles[^1].DataDic.ContainsKey(sourceId)) return;
-                        Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage);
+                        Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1);
                     }
 
                     //else if (effect->type == 0xE)
