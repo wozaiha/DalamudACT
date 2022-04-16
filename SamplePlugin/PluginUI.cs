@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Logging;
 using ImGuiNET;
 using ImGuiScene;
@@ -139,12 +138,20 @@ namespace ACT
 
             var x = ImGui.GetWindowWidth() - 100;
             ImGui.BeginMenuBar();
-            var items = new[] { "", "", "", "" };
+            var items = new []{"","","","","",""};
             for (var i = 0; i < _plugin.Battles.Count - 1; i++)
                 items[i] =
                     $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime).ToLocalTime():t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime).ToLocalTime():t} {_plugin.Battles[i].Zone}";
             // PluginLog.Information(items[i]);
-            items[_plugin.Battles.Count - 1] = $"Current: {_plugin.Battles[_plugin.Battles.Count - 1].Zone}";
+            try
+            {
+                items[_plugin.Battles.Count - 1] = $"Current: {_plugin.Battles[_plugin.Battles.Count - 1].Zone}";
+            }
+            catch (Exception e)
+            {
+                PluginLog.Error(e.ToString());
+            }
+           
             ImGui.SetNextItemWidth(160);
             ImGui.Combo("##battles", ref choosed, items, _plugin.Battles.Count);
             if (DalamudApi.ClientState.LocalPlayer != null &&

@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using ACT.Struct;
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.Network;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using ImGuiScene;
+using Lumina;
+using Lumina.Data;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
+using Lumina.Extensions;
 using Action = Lumina.Excel.GeneratedSheets.Action;
 
 namespace ACT
@@ -32,12 +29,12 @@ namespace ACT
         private ExcelSheet<TerritoryType> terrySheet;
 
 
-        private delegate void EffectDelegate(uint sourceId, IntPtr sourceCharacter);
-        private Hook<EffectDelegate> EffectEffectHook;
+        //private delegate void EffectDelegate(uint sourceId, IntPtr sourceCharacter);
+        //private Hook<EffectDelegate> EffectEffectHook;
 
-        private delegate void ReceiveAbiltyDelegate(int sourceId, IntPtr sourceCharacter, IntPtr pos,
+        private delegate void ReceiveAbilityDelegate(int sourceId, IntPtr sourceCharacter, IntPtr pos,
             IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
-        private Hook<ReceiveAbiltyDelegate> ReceiveAbilityHook;
+        private Hook<ReceiveAbilityDelegate> ReceiveAbilityHook;
 
         private delegate void ActorControlSelfDelegate(uint entityId, uint id, uint arg0, uint arg1, uint arg2,
             uint arg3, uint arg4, uint arg5, ulong targetId, byte a10);
@@ -172,10 +169,12 @@ namespace ACT
             {
                 Battles[^1].ActiveDots.Clear();
                 //新的战斗
-                if (Battles.Count == 3) Battles.RemoveAt(0);
+                if (Battles.Count == 5)
+                {
+                    Battles.RemoveAt(0);
+                    PluginUi.choosed--;
+                }
                 Battles.Add(new ACTBattle(0, 0));
-                PluginUi.choosed--;
-                if (PluginUi.choosed < 0) PluginUi.choosed = 0;
                 ACTBattle.SearchForPet();
             }
 
@@ -221,8 +220,8 @@ namespace ACT
                 //    DalamudApi.SigScanner.ScanText(
                 //        "48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
                 //EffectEffectHook.Enable();
-                ReceiveAbilityHook = new Hook<ReceiveAbiltyDelegate>(
-                    DalamudApi.SigScanner.ScanText((int)DalamudApi.ClientState.ClientLanguage > 3 ? "4C 89 44 24 18 53 56 57 41 54 41 57 48 81 EC ?? 00 00 00 8B F9":"4C 89 44 24 ?? 55 56 57 41 54 41 55 41 56 48 8D 6C 24 ??"),
+                ReceiveAbilityHook = new Hook<ReceiveAbilityDelegate>(
+                    DalamudApi.SigScanner.ScanText(DalamudApi.DataManager.GameData.Repositories["ffxiv"].Version == "2022.03.29.0000.0000" ? "4C 89 44 24 18 53 56 57 41 54 41 57 48 81 EC ?? 00 00 00 8B F9":"4C 89 44 24 ?? 55 56 57 41 54 41 55 41 56 48 8D 6C 24 ??"),
                     ReceiveAbilityEffect);
                 ReceiveAbilityHook.Enable();
                 ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(
