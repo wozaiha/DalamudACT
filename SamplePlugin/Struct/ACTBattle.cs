@@ -39,6 +39,7 @@ namespace ACT
             public uint JobId;
             public float Speed = 1f;
             public float Special = 1f;
+            public uint Death = 0;
         }
 
         public class SkillDamage
@@ -151,6 +152,14 @@ namespace ACT
                 }
             }
             //PluginLog.Log($"{Name.Count}");
+
+            //死亡
+            if (kind == 6)
+            {
+                if (!Name.ContainsKey(target)) return;
+                DataDic[target].Death++;
+                return;
+            }
 
             //DOT 伤害
             if (from == 0xE0000000 && kind == 3)

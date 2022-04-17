@@ -92,75 +92,78 @@ namespace ACT
         {
             ImGui.BeginTooltip();
             
-            ImGui.BeginTable("Tooltip", 6,ImGuiTableFlags.Borders);
-            ImGui.TableSetupColumn("###Icon");
-            ImGui.TableSetupColumn("###Name");
-            ImGui.TableSetupColumn("直击");
-            ImGui.TableSetupColumn("暴击");
-            ImGui.TableSetupColumn("直爆");
-            ImGui.TableSetupColumn("    DPS",ImGuiTableColumnFlags.WidthFixed,45f);
-            ImGui.TableHeadersRow();
-            
-
-            var damage = _plugin.Battles[choosed].DataDic[actor].Damages.ToList();
-            damage.Sort((pair1, pair2) => pair2.Value.Damage.CompareTo(pair1.Value.Damage));
-            foreach (var (action, dmg) in damage)
+            if (ImGui.BeginTable("Tooltip", 6,ImGuiTableFlags.Borders))
             {
-                if (action == 0 || sheet.GetRow(action) == null) continue;
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                if (Icon.TryGetValue(action, out var icon))
-                    ImGui.Image(icon.ImGuiHandle,
-                        new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
-                ImGui.TableNextColumn();
-                ImGui.Text(sheet.GetRow(action)!.Name);
-                ImGui.TableNextColumn();
-                ImGui.Text(((float)dmg.D / dmg.swings).ToString("P1") + "%");
-                ImGui.TableNextColumn();
-                ImGui.Text(((float)dmg.C / dmg.swings).ToString("P1") + "%");
-                ImGui.TableNextColumn();
-                ImGui.Text(((float)dmg.DC / dmg.swings).ToString("P1") + "%");
-                ImGui.TableNextColumn();
-                var temp = (float)dmg.Damage / _plugin.Battles[choosed].Duration();
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() - ImGui.CalcTextSize($"{temp,8:F1}").X);
-                ImGui.Text($"{temp,8:F1}");
-                
+                ImGui.TableSetupColumn("###Icon");
+                ImGui.TableSetupColumn("###Name");
+                ImGui.TableSetupColumn("直击");
+                ImGui.TableSetupColumn("暴击");
+                ImGui.TableSetupColumn("直爆");
+                ImGui.TableSetupColumn("    DPS", ImGuiTableColumnFlags.WidthFixed, 45f);
+                ImGui.TableHeadersRow();
 
 
-            }
-            
-
-            if (!float.IsInfinity(totalDotSim) && totalDotSim != 0)
-            {
-                ImGui.TableNextRow();
-                foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
+                var damage = _plugin.Battles[choosed].DataDic[actor].Damages.ToList();
+                damage.Sort((pair1, pair2) => pair2.Value.Damage.CompareTo(pair1.Value.Damage));
+                foreach (var (action, dmg) in damage)
                 {
-                    var buff = (uint)(active >> 32);
-                    var source = (uint)(active & 0xFFFFFFFF);
-                    if (source == actor)
+                    if (action == 0 || sheet.GetRow(action) == null) continue;
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    if (Icon.TryGetValue(action, out var icon))
+                        ImGui.Image(icon.ImGuiHandle,
+                            new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+                    ImGui.TableNextColumn();
+                    ImGui.Text(sheet.GetRow(action)!.Name);
+                    ImGui.TableNextColumn();
+                    ImGui.Text(((float) dmg.D / dmg.swings).ToString("P1") + "%");
+                    ImGui.TableNextColumn();
+                    ImGui.Text(((float) dmg.C / dmg.swings).ToString("P1") + "%");
+                    ImGui.TableNextColumn();
+                    ImGui.Text(((float) dmg.DC / dmg.swings).ToString("P1") + "%");
+                    ImGui.TableNextColumn();
+                    var temp = (float) dmg.Damage / _plugin.Battles[choosed].Duration();
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() -
+                                        ImGui.CalcTextSize($"{temp,8:F1}").X);
+                    ImGui.Text($"{temp,8:F1}");
+
+
+                }
+
+
+                if (!float.IsInfinity(totalDotSim) && totalDotSim != 0)
+                {
+                    ImGui.TableNextRow();
+                    foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
                     {
-                        if (!BuffIcon.ContainsKey(buff))
-                            BuffIcon.TryAdd(buff,
-                                DalamudApi.DataManager.GetImGuiTextureHqIcon(buffSheet.GetRow(buff)!.Icon));
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-                        ImGui.Image(BuffIcon[buff]!.ImGuiHandle,
-                            new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight() * 1.2f));
-                        ImGui.TableNextColumn();
-                        ImGui.Text(buffSheet.GetRow(buff)!.Name);
-                        ImGui.TableNextColumn();
-                        ImGui.TableNextColumn();
-                        ImGui.TableNextColumn();
-                        ImGui.TableNextColumn();
-                        var temp = _plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(source) *
-                            potency / totalDotSim / _plugin.Battles[choosed].Duration();
-                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() - ImGui.CalcTextSize($"{temp,8:F1}").X);
-                        ImGui.Text($"{temp,8:F1}");
-                        
+                        var buff = (uint) (active >> 32);
+                        var source = (uint) (active & 0xFFFFFFFF);
+                        if (source == actor)
+                        {
+                            if (!BuffIcon.ContainsKey(buff))
+                                BuffIcon.TryAdd(buff,
+                                    DalamudApi.DataManager.GetImGuiTextureHqIcon(buffSheet.GetRow(buff)!.Icon));
+                            ImGui.TableNextRow();
+                            ImGui.TableNextColumn();
+                            ImGui.Image(BuffIcon[buff]!.ImGuiHandle,
+                                new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight() * 1.2f));
+                            ImGui.TableNextColumn();
+                            ImGui.Text(buffSheet.GetRow(buff)!.Name);
+                            ImGui.TableNextColumn();
+                            ImGui.TableNextColumn();
+                            ImGui.TableNextColumn();
+                            ImGui.TableNextColumn();
+                            var temp = _plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(source) *
+                                potency / totalDotSim / _plugin.Battles[choosed].Duration();
+                            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() -
+                                                ImGui.CalcTextSize($"{temp,8:F1}").X);
+                            ImGui.Text($"{temp,8:F1}");
+
+                        }
                     }
                 }
+                ImGui.EndTable();
             }
-            ImGui.EndTable();
 
             ImGui.EndTooltip();
         }
@@ -213,6 +216,7 @@ namespace ACT
 
             ImGui.EndMenuBar();
 
+            
 
             long total = 0;
             var totaldotSim = 0f;
@@ -236,40 +240,82 @@ namespace ACT
                 else dmgList.Add((actor, damage.Damages[0].Damage));
 
             dmgList.Sort((pair1, pair2) => pair2.Item2.CompareTo(pair1.Item2));
-            foreach (var (actor, value) in dmgList)
+
+            if (ImGui.BeginTable("ACTMainWindow", 7))
             {
-                if (_plugin.Icon.TryGetValue(_plugin.Battles[choosed].DataDic[actor].JobId, out var icon))
+                ImGui.TableSetupColumn("###Icon",ImGuiTableColumnFlags.WidthFixed, ImGui.GetTextLineHeight());
+                var headers = new string[]
+                    {"###Name", "D", "C", "DC", "Damage", "Death"};
+                foreach (var t in headers) ImGui.TableSetupColumn(t);
+
+                ImGui.TableHeadersRow();
+
+
+                foreach (var (actor, value) in dmgList)
                 {
-                    ImGui.Image(icon!.ImGuiHandle, new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
-                    ImGui.SameLine();
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    if (_plugin.Icon.TryGetValue(_plugin.Battles[choosed].DataDic[actor].JobId, out var icon))
+                    {
+                        ImGui.Image(icon!.ImGuiHandle,
+                            new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+                        
+                    }
+                    ImGui.TableNextColumn();
+                    ImGui.Text(_plugin.Battles[choosed].Name[actor]);
+                    ImGui.TableNextColumn();
+                    ImGui.Text(((float)_plugin.Battles[choosed].DataDic[actor].Damages[0].D / _plugin.Battles[choosed].DataDic[actor].Damages[0].swings).ToString("P1")+"%");
+                    ImGui.TableNextColumn();
+                    ImGui.Text(((float)_plugin.Battles[choosed].DataDic[actor].Damages[0].C / _plugin.Battles[choosed].DataDic[actor].Damages[0].swings).ToString("P1") + "%");
+                    ImGui.TableNextColumn();
+                    ImGui.Text(((float)_plugin.Battles[choosed].DataDic[actor].Damages[0].DC / _plugin.Battles[choosed].DataDic[actor].Damages[0].swings).ToString("P1") + "%");
+                    ImGui.TableNextColumn();
+                    ImGui.Text(((float) value / seconds).ToString("0.0"));
+                    if (ImGui.IsItemHovered()) DrawDetails(actor, totaldotSim);
+                    total += value;
+                    ImGui.TableNextColumn();
+                    ImGui.Text(_plugin.Battles[choosed].DataDic[actor].Death.ToString("D"));
                 }
 
-                ImGui.Text(_plugin.Battles[choosed].Name[actor]);
-                ImGui.SameLine(x);
-                ImGui.Text(((float)value / seconds).ToString("0.0"));
-                if (ImGui.IsItemHovered()) DrawDetails(actor, totaldotSim);
-                total += value;
-            }
+                ImGui.TableNextRow();
+                if (_plugin.Battles[choosed].TotalDotDamage != 0 && float.IsInfinity(totaldotSim) ||
+                    _plugin.Battles[choosed].Level < 64)
+                {
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("DOT");
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.Text(((float) _plugin.Battles[choosed].TotalDotDamage / _plugin.Battles[choosed].Duration())
+                        .ToString("0.0"));
+                    total += _plugin.Battles[choosed].TotalDotDamage;
+                }
 
-            if (_plugin.Battles[choosed].TotalDotDamage != 0 && float.IsInfinity(totaldotSim) ||
-                _plugin.Battles[choosed].Level < 64)
-            {
-                ImGui.Text("DOT");
-                ImGui.SameLine(x);
-                ImGui.Text(((float)_plugin.Battles[choosed].TotalDotDamage / _plugin.Battles[choosed].Duration())
-                    .ToString("0.0"));
-                total += _plugin.Battles[choosed].TotalDotDamage;
-            }
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.Text("Total");
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.Text(((float) total / seconds).ToString("0.0"));
 
-            ImGui.Text("Total");
-            ImGui.SameLine(x);
-            ImGui.Text(((float)total / seconds).ToString("0.0"));
-
-            if (!float.IsInfinity(totaldotSim) && totaldotSim != 0)
-            {
-                ImGui.Text("Δ");
-                ImGui.SameLine(x);
-                ImGui.Text($"{totaldotSim * 100 / _plugin.Battles[choosed].TotalDotDamage - 100:F2}%%");
+                if (!float.IsInfinity(totaldotSim) && totaldotSim != 0)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.Text("Δ");
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{totaldotSim * 100 / _plugin.Battles[choosed].TotalDotDamage - 100:F2}%%");
+                }
+                ImGui.EndTable();
             }
 
             ImGui.End();

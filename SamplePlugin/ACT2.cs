@@ -36,7 +36,7 @@ namespace ACT
             IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
         private Hook<ReceiveAbilityDelegate> ReceiveAbilityHook;
 
-        private delegate void ActorControlSelfDelegate(uint entityId, uint id, uint arg0, uint arg1, uint arg2,
+        private delegate void ActorControlSelfDelegate(uint entityId, ActorControlCategory id, uint arg0, uint arg1, uint arg2,
             uint arg3, uint arg4, uint arg5, ulong targetId, byte a10);
         private Hook<ActorControlSelfDelegate> ActorControlSelfHook;
 
@@ -71,6 +71,18 @@ namespace ACT
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
                         PluginLog.Debug($"EffectEntry:{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
                         //if (!Battles[^1].DataDic.ContainsKey(sourceId)) return;
+
+                        if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
+                            if (DalamudApi.ClientState.LocalPlayer != null &&
+                                (DalamudApi.Condition[ConditionFlag.InCombat] || DalamudApi.ClientState.LocalPlayer.ObjectId == sourceId))
+                            {
+                                //开始战斗
+                                Battles[^1].StartTime = DateTimeOffset.Now.ToUnixTimeSeconds(); 
+                                Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds(); 
+                                Battles[^1].Zone = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name ?? "Unknown";
+                                PluginUi.choosed = Battles.Count - 1;
+                                //ACTBattle.SearchForPet();
+                            }
                         Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1);
                     }
 
@@ -108,15 +120,23 @@ namespace ACT
 
 
 
-        private void ReceiveActorControlSelf(uint entityId, uint type, uint buffID, uint direct, uint damage, uint sourceId,
+        private void ReceiveActorControlSelf(uint entityId, ActorControlCategory type, uint buffID, uint direct, uint damage, uint sourceId,
             uint arg4, uint arg5, ulong targetId, byte a10)
         {
             //PluginLog.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:{buffID}:{direct}:{damage}:{sourceId:X}:");
             ActorControlSelfHook.Original(entityId, type, buffID, direct, damage, sourceId, arg4, arg5, targetId, a10);
+            if (type == ActorControlCategory.Death && entityId < 0x40000000)
+            {
+                Battles[^1].AddEvent(6, buffID, entityId, 0, 0);
+                return;
+            } 
+            // actorid:death:id1:id2:?:?:?:?:E0000000:0
             if (entityId < 0x40000000) return;
             if (sourceId > 0x40000000) ACTBattle.pet.TryGetValue(sourceId, out sourceId);
             if (sourceId > 0x40000000) return;
-            if (type != 23) return;
+            
+                
+            if (type != ActorControlCategory.HoT_DoT) return;
             //if (!Battles[^1].DataDic.ContainsKey(sourceId)) return;
             if (buffID != 0)
             {
@@ -188,7 +208,7 @@ namespace ACT
                     Battles[^1].EndTime = now;
                     Battles[^1].Zone = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name ?? "Unknown";
                     PluginUi.choosed = Battles.Count - 1;
-                    ACTBattle.SearchForPet();
+                    //ACTBattle.SearchForPet();
                 }
         }
 
