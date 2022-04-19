@@ -10,9 +10,11 @@ namespace ACT
     {
         public bool Enabled;
         public bool Locked;
-        public Vector2 WindowPos;
+        public Vector2 WindowSize = Vector2.One;
         public bool LevelEnabled;
         public int FateLevel;
+        public bool HideName;
+        public bool Mini;
 
         // the below exist just to make saving less cumbersome
 

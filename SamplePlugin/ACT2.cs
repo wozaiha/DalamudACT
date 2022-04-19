@@ -8,11 +8,8 @@ using Dalamud.Hooking;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using ImGuiScene;
-using Lumina;
-using Lumina.Data;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
-using Lumina.Extensions;
 using Action = Lumina.Excel.GeneratedSheets.Action;
 
 namespace ACT
@@ -72,17 +69,17 @@ namespace ACT
                         PluginLog.Debug($"EffectEntry:{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
                         //if (!Battles[^1].DataDic.ContainsKey(sourceId)) return;
 
-                        if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
-                            if (DalamudApi.ClientState.LocalPlayer != null &&
-                                (DalamudApi.Condition[ConditionFlag.InCombat] || DalamudApi.ClientState.LocalPlayer.ObjectId == sourceId))
-                            {
-                                //开始战斗
-                                Battles[^1].StartTime = DateTimeOffset.Now.ToUnixTimeSeconds(); 
-                                Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds(); 
-                                Battles[^1].Zone = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name ?? "Unknown";
-                                PluginUi.choosed = Battles.Count - 1;
-                                //ACTBattle.SearchForPet();
-                            }
+                        //if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
+                        //    if (DalamudApi.ClientState.LocalPlayer != null &&
+                        //        (DalamudApi.Condition[ConditionFlag.InCombat] || DalamudApi.ClientState.LocalPlayer.ObjectId == sourceId))
+                        //    {
+                        //        //开始战斗
+                        //        Battles[^1].StartTime = DateTimeOffset.Now.ToUnixTimeSeconds(); 
+                        //        Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds(); 
+                        //        Battles[^1].Zone = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name ?? "Unknown";
+                        //        PluginUi.choosed = Battles.Count - 1;
+                        //        //ACTBattle.SearchForPet();
+                        //    }
                         Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1);
                     }
 

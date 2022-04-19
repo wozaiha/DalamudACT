@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using Dalamud.Game.ClientState.Conditions;
+﻿using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
@@ -134,6 +133,7 @@ namespace ACT
         {
             if (!DalamudApi.Condition[ConditionFlag.BoundByDuty] &&
                 !DalamudApi.Condition[ConditionFlag.InCombat]) return;
+
             if (from > 0x40000000 && from != 0xE0000000 || from == 0x0)
             {
                 PluginLog.Error($"Unknown Id {from:X}");
