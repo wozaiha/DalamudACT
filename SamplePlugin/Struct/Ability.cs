@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ACT.Struct
+namespace DalamudACT.Struct
 {
     [StructLayout(LayoutKind.Explicit, Size = 0x2A)]
     public struct Header

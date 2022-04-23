@@ -1,0 +1,14 @@
+{
+    "Author": "wozaiha",
+    "Name": "Dalamud Damage Display",
+    "Punchline": "Show your battle Damage in game.",
+    "Description": "Display your Damage in game.",
+    "InternalName": "DalamudACT",
+    "RepoUrl": "https://github.com/wozaiha/DalamudACT",
+    "ApplicableVersion": "any",
+    "Tags": [
+        "ACT",
+        "Battle"
+    ],
+    "DalamudApiLevel": 5
+}

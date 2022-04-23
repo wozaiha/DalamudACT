@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ACT.Struct
+namespace DalamudACT.Struct
 {
     public struct ActorControl
     {

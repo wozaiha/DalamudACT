@@ -3,18 +3,17 @@ using System.Numerics;
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 
-namespace ACT
+namespace DalamudACT
 {
     [Serializable]
     public class Configuration : IPluginConfiguration
     {
-        public bool Enabled;
-        public bool Locked;
+        public bool Lock;
+        public bool NoResize;
         public Vector2 WindowSize = Vector2.One;
-        public bool LevelEnabled;
-        public int FateLevel;
         public bool HideName;
         public bool Mini;
+        public int BGColor = 100;
 
         // the below exist just to make saving less cumbersome
 

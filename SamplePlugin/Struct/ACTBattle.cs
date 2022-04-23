@@ -1,14 +1,14 @@
-﻿using Dalamud.Game.ClientState.Conditions;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
 
-namespace ACT
+namespace DalamudACT.Struct
 {
 
     public class ACTBattle
@@ -129,7 +129,7 @@ namespace ACT
                 DataDic[objectId].Speed = muti;
         }
 
-        public void AddEvent(int kind, uint @from, uint target, uint id, long damage, byte dc =0)
+        public void AddEvent(int kind, uint from, uint target, uint id, long damage, byte dc =0)
         {
             if (!DalamudApi.Condition[ConditionFlag.BoundByDuty] &&
                 !DalamudApi.Condition[ConditionFlag.InCombat]) return;
@@ -156,8 +156,8 @@ namespace ACT
             //死亡
             if (kind == 6)
             {
-                if (!Name.ContainsKey(target)) return;
-                DataDic[target].Death++;
+                if (!Name.ContainsKey(from)) return;
+                DataDic[from].Death++;
                 return;
             }
 

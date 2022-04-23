@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ACT
+namespace DalamudACT
 {
     public class Potency
     {

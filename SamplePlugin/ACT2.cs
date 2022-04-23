@@ -1,23 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using ACT.Struct;
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using DalamudACT.Struct;
 using ImGuiScene;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 using Action = Lumina.Excel.GeneratedSheets.Action;
 
-namespace ACT
+namespace DalamudACT
 {
     public class ACT : IDalamudPlugin
     {
-        public string Name => "ACT Beta";
-
+        public string Name => "Dalamud Damage Display";
+        
         public Configuration Configuration;
         private PluginUI PluginUi;
         
@@ -124,7 +124,8 @@ namespace ACT
             ActorControlSelfHook.Original(entityId, type, buffID, direct, damage, sourceId, arg4, arg5, targetId, a10);
             if (type == ActorControlCategory.Death && entityId < 0x40000000)
             {
-                Battles[^1].AddEvent(6, buffID, entityId, 0, 0);
+                Battles[^1].AddEvent(6, entityId, buffID, 0, 0);
+                PluginLog.Error($"{entityId:X} killed by {buffID:X}");
                 return;
             } 
             // actorid:death:id1:id2:?:?:?:?:E0000000:0
@@ -294,10 +295,11 @@ namespace ACT
         }
 
         [Command("/act")]
-        [HelpMessage("显示Debug窗口.")]
+        [HelpMessage("显示设置窗口.")]
         private void ToggleConfig(string command, string args)
         {
-            PluginUi.DrawConfigUI();
+           if (args is "" or null) PluginUi.DrawConfigUI();
+           if (args is "debug") PluginUi.ShowDebug();
         }
     }
 }

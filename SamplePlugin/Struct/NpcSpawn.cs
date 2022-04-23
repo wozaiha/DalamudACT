@@ -1,4 +1,4 @@
-﻿namespace ACT.Struct
+﻿namespace DalamudACT.Struct
 {
     internal struct NpcSpawn
     {
