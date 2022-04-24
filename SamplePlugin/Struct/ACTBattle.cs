@@ -173,15 +173,15 @@ public class ACTBattle
                 if (dot.Source > 0x40000000) continue;
                 if (!DataDic.ContainsKey(dot.Source)) AddPlayer(dot.Source);
                 if (!DataDic.ContainsKey(dot.Source)) continue;
-                var ratio = 1f;
-                if (dot.BuffId == 2721) //大宝剑
-                    ratio *= DataDic[dot.Source].DotMainTarget == target ? 1f : 0.5f;
-
+                
                 var active = DotToActive(dot);
                 if (PlayerDotPotency.ContainsKey(active))
-                    PlayerDotPotency[active] += (long) (Potency.DotPot[dot.BuffId] * ratio);
+                    PlayerDotPotency[active] += Potency.DotPot[dot.BuffId];
                 else
-                    PlayerDotPotency.Add(active, (long) (Potency.DotPot[dot.BuffId] * ratio));
+                    PlayerDotPotency.Add(active,Potency.DotPot[dot.BuffId]);
+
+                if (dot.BuffId == 2721) //大宝剑
+                    PlayerDotPotency[active] -= Potency.DotPot[dot.BuffId] / 2;
             }
         }
 
