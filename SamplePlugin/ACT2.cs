@@ -67,26 +67,12 @@ namespace DalamudACT
                         long damage = effect->param0;
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
                         PluginLog.Debug($"EffectEntry:{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
-                        //if (!Battles[^1].DataDic.ContainsKey(sourceId)) return;
-
-                        //if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
-                        //    if (DalamudApi.ClientState.LocalPlayer != null &&
-                        //        (DalamudApi.Condition[ConditionFlag.InCombat] || DalamudApi.ClientState.LocalPlayer.ObjectId == sourceId))
-                        //    {
-                        //        //开始战斗
-                        //        Battles[^1].StartTime = DateTimeOffset.Now.ToUnixTimeSeconds(); 
-                        //        Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds(); 
-                        //        Battles[^1].Zone = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name ?? "Unknown";
-                        //        PluginUi.choosed = Battles.Count - 1;
-                        //        //ACTBattle.SearchForPet();
-                        //    }
-                        Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1);
+                        if (j is 0 && header.actionId == 25750) //英勇之剑
+                            Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1,true);
+                        else Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1);
                     }
 
-                    //else if (effect->type == 0xE)
-                    //{
-                    //    Battles[^1].AddEvent(0xE,sourceId,(uint)data.targetId[i],effect->param0,0);
-                    //}
+                    
                     effect++;
                 }
 
@@ -105,14 +91,6 @@ namespace DalamudACT
             if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
                 if (Battles[^1].DataDic.TryGetValue(source, out _))
                     Battles[^1].AddSS(source, data.cast_time, data.action_id);
-
-            //if (data.action_id == 7489) //彼岸花 回天
-            //{
-            //    var actor = (PlayerCharacter)DalamudApi.ObjectTable.First(x =>
-            //        x.ObjectId == source && x.ObjectKind == ObjectKind.Player);
-            //    if (!Battles[^1].DataDic.ContainsKey(source)) return;
-            //    Battles[^1].DataDic[source].Special = actor.StatusList.Any(x => x.StatusId == 1229) ? 1.5f : 1.0f;
-            //}
         }
 
 

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Logging;
-using DalamudACT.Struct;
 using ImGuiNET;
 using ImGuiScene;
 using Lumina.Excel;
@@ -169,8 +168,11 @@ internal class PluginUI : IDisposable
         ImGui.SetNextWindowBgAlpha((float) config.BGColor / 100);
         if (config.Mini)
         {
-            ImGui.Begin("Damage Beta", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar | (config.NoResize? ImGuiWindowFlags.NoResize:ImGuiWindowFlags.None) | (config.Lock ? ImGuiWindowFlags.NoMove : ImGuiWindowFlags.None));
-            
+            ImGui.Begin("Damage Beta",
+                ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar |
+                (config.NoResize ? ImGuiWindowFlags.NoResize : ImGuiWindowFlags.None) |
+                (config.Lock ? ImGuiWindowFlags.NoMove : ImGuiWindowFlags.None));
+
             if (ImGui.ImageButton(mainIcon.ImGuiHandle, new Vector2(40f)))
             {
                 config.Mini = !config.Mini;
@@ -186,7 +188,10 @@ internal class PluginUI : IDisposable
 
         if (config.Mini) return;
         if (_plugin.Battles.Count < 1) return;
-        ImGui.Begin("Damage Beta", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar | (config.NoResize ? ImGuiWindowFlags.NoResize : ImGuiWindowFlags.None) | (config.Lock ? ImGuiWindowFlags.NoMove : ImGuiWindowFlags.None));
+        ImGui.Begin("Damage Beta",
+            ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar |
+            (config.NoResize ? ImGuiWindowFlags.NoResize : ImGuiWindowFlags.None) |
+            (config.Lock ? ImGuiWindowFlags.NoMove : ImGuiWindowFlags.None));
 
 
         ImGui.BeginMenuBar();
@@ -372,10 +377,10 @@ internal class PluginUI : IDisposable
             ImGui.Text(
                 $"Total Dot DPS:{_plugin.Battles[choosed].TotalDotDamage / _plugin.Battles[choosed].Duration()}");
 
-            if (ImGui.BeginTable("Pot", 7))
+            if (ImGui.BeginTable("Pot", 6))
             {
                 var headers = new string[]
-                    {"Name", "ActorId", "PotSkill", "SkillPotency", "Speed", "Special", "PDD"};
+                    {"Name", "ActorId", "PotSkill", "SkillPotency", "Speed", "PDD"};
                 foreach (var t in headers) ImGui.TableSetupColumn(t);
 
                 ImGui.TableHeadersRow();
@@ -392,8 +397,6 @@ internal class PluginUI : IDisposable
                     ImGui.Text($"{damage.SkillPotency}");
                     ImGui.TableNextColumn();
                     ImGui.Text($"{damage.Speed}");
-                    ImGui.TableNextColumn();
-                    ImGui.Text($"{damage.Special}");
                     ImGui.TableNextColumn();
                     ImGui.Text($"{_plugin.Battles[choosed].PDD(actor)}");
                 }
@@ -448,9 +451,8 @@ internal class PluginUI : IDisposable
 
                 ImGui.TableHeadersRow();
 
-                foreach (var active in _plugin.Battles[choosed].ActiveDots)
+                foreach (var dot in _plugin.Battles[choosed].ActiveDots)
                 {
-                    var dot = ACTBattle.ActiveToDot(active);
                     ImGui.TableNextColumn();
                     ImGui.Text($"{buffSheet.GetRow(dot.BuffId)!.Name}");
                     ImGui.TableNextColumn();
