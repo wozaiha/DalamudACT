@@ -58,6 +58,7 @@ namespace DalamudACT.Struct
     {
         public Header header;
         public fixed byte enrty[1 * 8 * 8];
+        public Ender ender;
         public fixed ulong targetId[1];
     }
 
@@ -65,6 +66,7 @@ namespace DalamudACT.Struct
     {
         public Header header;
         public fixed byte enrty[8 * 8 * 8];
+        public Ender ender;
         public fixed ulong targetId[8];
     }
 
@@ -72,13 +74,15 @@ namespace DalamudACT.Struct
     {
         public Header header;
         public fixed byte enrty[16 * 8 * 8];
+        public Ender ender;
         public fixed ulong targetId[16];
     }
 
     public unsafe struct Ability24
     {
         public Header header;
-        public fixed byte enrty[24 * 8 * 8];
+        public fixed byte enrty[24 * 8 * 8]; 
+        public Ender ender;
         public fixed ulong targetId[24];
     }
 
@@ -86,6 +90,7 @@ namespace DalamudACT.Struct
     {
         public Header header;
         public fixed byte enrty[32 * 8 * 8];
+        public Ender ender;
         public fixed ulong targetId[32];
     }
 }

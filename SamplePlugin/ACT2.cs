@@ -54,13 +54,13 @@ namespace DalamudACT
 
             var header = Marshal.PtrToStructure<Header>(ptr);
             var effect = (EffectEntry*)(ptr + sizeof(Header));
-            var target = (ulong*)(ptr + sizeof(Header) + 8 * sizeof(EffectEntry) * length);
+            var target = (ulong*)(ptr + sizeof(Header) + 8 * sizeof(EffectEntry) * length + sizeof(Ender));
             
             for (var i = 0; i < length; i++)
             {
-                if (*target == 0x0) break;
+                PluginLog.Debug($"{*target:X} effect:{effect->type}:{effect->param0}:{effect->param1}:{effect->param2}:{effect->param3}:{effect->param4}:{effect->param5}");
+                if (*target == 0x0) break; 
                 //PluginLog.Debug($"{*target:X}");
-                PluginLog.Debug($"effect:{effect->type}:{effect->param0}:{effect->param1}:{effect->param2}:{effect->param3}:{effect->param4}:{effect->param5}");
                 for (var j = 0; j < 8; j++)
                 {
                     if (effect->type == 3) //damage
