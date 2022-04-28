@@ -26,8 +26,8 @@ namespace DalamudACT
         private ExcelSheet<TerritoryType> terrySheet;
 
 
-        //private delegate void EffectDelegate(uint sourceId, IntPtr sourceCharacter);
-        //private Hook<EffectDelegate> EffectEffectHook;
+        private delegate void EffectDelegate(uint sourceId, IntPtr sourceCharacter);
+        private Hook<EffectDelegate> EffectHook;
 
         private delegate void ReceiveAbilityDelegate(int sourceId, IntPtr sourceCharacter, IntPtr pos,
             IntPtr effectHeader, IntPtr effectArray, IntPtr effectTrail);
@@ -48,13 +48,14 @@ namespace DalamudACT
 
         private unsafe void Ability(IntPtr ptr, uint sourceId, int length)
         {
+            PluginLog.Debug($"-----------------------Ability{length}:{sourceId:X}------------------------------");
             if (sourceId > 0x40000000) ACTBattle.pet.TryGetValue(sourceId, out sourceId);
             if (sourceId is > 0x40000000 or 0x0) return;
 
             var header = Marshal.PtrToStructure<Header>(ptr);
             var effect = (EffectEntry*)(ptr + sizeof(Header));
             var target = (ulong*)(ptr + sizeof(Header) + 8 * sizeof(EffectEntry) * length);
-            PluginLog.Debug($"-----------------------Ability{length}------------------------------");
+            
             for (var i = 0; i < length; i++)
             {
                 if (*target == 0x0) break;
@@ -71,14 +72,10 @@ namespace DalamudACT
                             Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1,true);
                         else Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1);
                     }
-
-                    
                     effect++;
                 }
-
                 target++;
             }
-
             PluginLog.Debug("------------------------END------------------------------");
         }
 
@@ -131,9 +128,9 @@ namespace DalamudACT
             var targetCount = *(byte*)(effectHeader + 0x21);
             switch (targetCount)
             {
-                case 1:
-                    Ability(effectHeader, (uint)sourceId, 1);
-                    break;
+                //case 1:
+                //    Ability(effectHeader, (uint)sourceId, 1);
+                //    break;
                 case <=8 and >1:
                     Ability(effectHeader, (uint)sourceId, 8);
                     break;
@@ -151,11 +148,11 @@ namespace DalamudACT
             ReceiveAbilityHook.Original(sourceId, sourceCharacter, pos, effectHeader, effectArray, effectTrail);
         }
 
-        //private void Effect(uint sourceId, IntPtr ptr)
-        //{
-        //    Ability(ptr, sourceId, 1);
-        //    EffectEffectHook.Original(sourceId, ptr);
-        //}
+        private void Effect(uint sourceId, IntPtr ptr)
+        {
+            Ability(ptr, sourceId, 1);
+            EffectHook.Original(sourceId, ptr);
+        }
 
         #endregion
 
@@ -213,10 +210,14 @@ namespace DalamudACT
             #region Hook
 
             {
+                EffectHook = new Hook<EffectDelegate>(
+                    DalamudApi.SigScanner.ScanText(
+                        "48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
+                EffectHook.Enable();
                 ReceiveAbilityHook = new Hook<ReceiveAbilityDelegate>(
-                    DalamudApi.SigScanner.ScanText(DalamudApi.DataManager.GameData.Repositories["ffxiv"].Version is "2022.03.29.0000.0000" or "2022.04.15.0000.0000" ? "4C 89 44 24 18 53 56 57 41 54 41 57 48 81 EC ?? 00 00 00 8B F9":"4C 89 44 24 ?? 55 56 57 41 54 41 55 41 56 48 8D 6C 24 ??"),
+                    DalamudApi.SigScanner.ScanText(DalamudApi.DataManager.GameData.Repositories["ffxiv"].Version is "2022.04.15.0000.0000"? "4C 89 44 24 ?? 53 56 57 41 54 41 57" : "4C 89 44 24 ?? 55 56 57 41 54 41 55 41 56 48 8D 6C 24 ??"),
                     ReceiveAbilityEffect);
-                ReceiveAbilityHook.Enable();
+                ReceiveAbilityHook.Enable(); 
                 ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
@@ -250,21 +251,26 @@ namespace DalamudACT
             PluginLog.Debug($"Spawn:{target:X}:{obj.spawnerId:X}");
         }
 
+        public void Disable()
+        {
+            ActorControlSelfHook.Disable();
+            ReceiveAbilityHook.Disable();
+            NpcSpawnHook.Disable();
+            CastHook.Disable();
+            EffectHook.Disable();
+        }
+
         public void Dispose()
         {
             DalamudApi.Framework.Update -= Update;
             PluginUi?.Dispose();
             foreach (var (id, texture) in Icon) texture?.Dispose();
 
-            ActorControlSelfHook.Disable();
-            ReceiveAbilityHook.Disable();
-            NpcSpawnHook.Disable();
-            CastHook.Disable();
-
             ActorControlSelfHook.Dispose();
             ReceiveAbilityHook.Dispose();
             NpcSpawnHook.Dispose();
             CastHook.Dispose();
+            EffectHook.Dispose();
             DalamudApi.Dispose();
         }
 
