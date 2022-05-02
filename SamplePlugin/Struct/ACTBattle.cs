@@ -23,7 +23,6 @@ public class ACTBattle
 
     public class Dot
     {
-        public uint Target;
         public uint Source;
         public uint BuffId;
     }
@@ -180,7 +179,7 @@ public class ACTBattle
                 else
                     PlayerDotPotency.Add(active,Potency.DotPot[dot.BuffId]);
 
-                if (dot.BuffId == 2721) //大宝剑
+                if (dot.BuffId == 2721 && DataDic[from].DotMainTarget != target) //大宝剑
                     PlayerDotPotency[active] -= Potency.DotPot[dot.BuffId] / 2;
             }
         }
@@ -203,7 +202,7 @@ public class ACTBattle
 
             if (DataDic[from].Damages.ContainsKey(id))
             {
-                DataDic[@from].Damages[id].AddDamage(damage);
+                DataDic[from].Damages[id].AddDamage(damage);
             }
             else
             {
@@ -213,6 +212,7 @@ public class ACTBattle
             }
 
             DataDic[from].Damages[id].AddDC(dc);
+
             DataDic[from].Damages[0].AddDamage(damage);
             DataDic[from].Damages[0].AddDC(dc);
         }
@@ -249,7 +249,7 @@ public class ACTBattle
                 var source = status.SourceID;
                 if (status.SourceID > 0x40000000) pet.TryGetValue(source, out source);
                 ActiveDots.Add(new Dot()
-                    {BuffId = status.StatusId, Source = source, Target = id});
+                    {BuffId = status.StatusId, Source = source});
             }
         }
 

@@ -14,6 +14,7 @@ namespace DalamudACT
         public bool HideName;
         public bool Mini;
         public int BGColor = 100;
+        public bool delta = false;
 
         // the below exist just to make saving less cumbersome
 

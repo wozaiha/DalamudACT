@@ -257,7 +257,7 @@ namespace DalamudACT
             ReceiveAbilityHook.Disable();
             NpcSpawnHook.Disable();
             CastHook.Disable();
-            EffectHook.Disable();
+            //EffectHook.Disable();
         }
 
         public void Dispose()
@@ -270,7 +270,7 @@ namespace DalamudACT
             ReceiveAbilityHook.Dispose();
             NpcSpawnHook.Dispose();
             CastHook.Dispose();
-            EffectHook.Dispose();
+            //EffectHook.Dispose();
             DalamudApi.Dispose();
         }
 
