@@ -146,7 +146,7 @@ internal class PluginUI : IDisposable
                     ImGui.TableNextColumn();
                     ImGui.TableNextColumn();
                     ImGui.TableNextColumn();
-                    var temp = _plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(source) *
+                    var temp = _plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].DPP(source) *
                         potency / totalDotSim / _plugin.Battles[choosed].Duration();
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() -
                                         ImGui.CalcTextSize($"{temp,8:F1}").X);
@@ -239,7 +239,7 @@ internal class PluginUI : IDisposable
             foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
             {
                 var source = (uint) (active & 0xFFFFFFFF);
-                var dmg = _plugin.Battles[choosed].PDD(source) * potency;
+                var dmg = _plugin.Battles[choosed].DPP(source) * potency;
                 totaldotSim += dmg;
                 if (DotDictionary.ContainsKey(source)) DotDictionary[source] += dmg;
                 else DotDictionary.Add(source, dmg);
@@ -365,7 +365,7 @@ internal class PluginUI : IDisposable
             if (ImGui.BeginTable("Pot", 6))
             {
                 var headers = new string[]
-                    {"Name", "ActorId", "PotSkill", "SkillPotency", "Speed", "PDD"};
+                    {"Name", "ActorId", "PotSkill", "SkillPotency", "Speed", "DPP"};
                 foreach (var t in headers) ImGui.TableSetupColumn(t);
                 ImGui.TableHeadersRow();
 
@@ -382,7 +382,7 @@ internal class PluginUI : IDisposable
                     ImGui.TableNextColumn();
                     ImGui.Text($"{damage.Speed}");
                     ImGui.TableNextColumn();
-                    ImGui.Text($"{_plugin.Battles[choosed].PDD(actor)}");
+                    ImGui.Text($"{_plugin.Battles[choosed].DPP(actor)}");
                 }
             }
 
@@ -400,7 +400,7 @@ internal class PluginUI : IDisposable
                 foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
                 {
                     var source = (uint) (active & 0xFFFFFFFF);
-                    total += _plugin.Battles[choosed].PDD(source) * potency;
+                    total += _plugin.Battles[choosed].DPP(source) * potency;
                 }
 
                 foreach (var (active, potency) in _plugin.Battles[choosed].PlayerDotPotency)
@@ -415,10 +415,10 @@ internal class PluginUI : IDisposable
                     ImGui.Text($"{potency}");
                     ImGui.TableNextColumn();
                     ImGui.Text(
-                        $"{_plugin.Battles[choosed].PDD(source) * potency / _plugin.Battles[choosed].Duration()}");
+                        $"{_plugin.Battles[choosed].DPP(source) * potency / _plugin.Battles[choosed].Duration()}");
                     ImGui.TableNextColumn();
                     ImGui.Text(
-                        $"{_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].PDD(source) * potency / total / _plugin.Battles[choosed].Duration()}");
+                        $"{_plugin.Battles[choosed].TotalDotDamage * _plugin.Battles[choosed].DPP(source) * potency / total / _plugin.Battles[choosed].Duration()}");
                 }
 
                 ImGui.EndTable();

@@ -223,7 +223,7 @@ public class ACTBattle
         return ((long) dot.BuffId << 32) + dot.Source;
     }
 
-    public float PDD(uint actor)
+    public float DPP(uint actor)
     {
         long result = 1;
         if (DataDic[actor].Damages.TryGetValue(DataDic[actor].PotSkill, out var dmg)) result = dmg.Damage;
