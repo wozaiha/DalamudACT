@@ -179,7 +179,7 @@ public class ACTBattle
                 else
                     PlayerDotPotency.Add(active,Potency.DotPot[dot.BuffId]);
 
-                if (dot.BuffId == 2721 && DataDic[from].DotMainTarget != target) //大宝剑
+                if (dot.BuffId == 2721 && DataDic.ContainsKey(dot.Source) && DataDic[dot.Source].DotMainTarget != target) //大宝剑
                     PlayerDotPotency[active] -= Potency.DotPot[dot.BuffId] / 2;
             }
         }
