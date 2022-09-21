@@ -214,19 +214,19 @@ namespace DalamudACT
                 //    DalamudApi.SigScanner.ScanText(
                 //        "48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
                 //EffectHook.Enable();
-                ReceiveAbilityHook = new Hook<ReceiveAbilityDelegate>(
-                    DalamudApi.SigScanner.ScanText(DalamudApi.DataManager.GameData.Repositories["ffxiv"].Version is "2022.04.15.0000.0000"? "4C 89 44 24 ?? 53 56 57 41 54 41 57" : "4C 89 44 24 ?? 55 56 57 41 54 41 55 41 56 48 8D 6C 24 ??"),
+                ReceiveAbilityHook = Hook<ReceiveAbilityDelegate>.FromAddress(
+				   DalamudApi.SigScanner.ScanText("4C 89 44 24 ?? 55 56 57 41 54 41 55 41 56 48 8D 6C 24 ??"),
                     ReceiveAbilityEffect);
                 ReceiveAbilityHook.Enable(); 
-                ActorControlSelfHook = new Hook<ActorControlSelfDelegate>(
+                ActorControlSelfHook =Hook<ActorControlSelfDelegate>.FromAddress(
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
-                NpcSpawnHook = new Hook<NpcSpawnDelegate>(
+                NpcSpawnHook = Hook<NpcSpawnDelegate>.FromAddress(
                     DalamudApi.SigScanner.ScanText(
                         "E8 ?? ?? ?? ?? 48 8B 5C 24 ?? 48 83 C4 20 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 57 48 83 EC 20 48 8B DA 8B F9 "),
                     ReviceNpcSpawn);
                 NpcSpawnHook.Enable();
-                CastHook = new Hook<CastDelegate>(
+                CastHook =Hook<CastDelegate>.FromAddress(
                     DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), StartCast);
                 CastHook.Enable();
             }

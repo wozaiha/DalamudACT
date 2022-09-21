@@ -55,16 +55,18 @@ public class ACTBattle
         {
             switch (dc)
             {
-                case 1:
-                    D++;
-                    break;
-                case 2:
-                    C++;
-                    break;
-                case 3:
-                    DC++;
-                    break;
-            }
+				case 64:
+					D++;
+					break;
+				case 32:
+					C++;
+					break;
+				case 96:
+					DC++;
+					D++;
+					C++;
+					break;
+			}
 
             swings++;
         }
