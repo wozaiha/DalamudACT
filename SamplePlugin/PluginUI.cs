@@ -180,6 +180,7 @@ internal class PluginUI : IDisposable
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("还原");
 
             ImGui.End();
+            return;
         }
 
 

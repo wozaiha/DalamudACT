@@ -6,9 +6,10 @@
     "InternalName": "DalamudACT",
     "RepoUrl": "https://github.com/wozaiha/DalamudACT",
     "ApplicableVersion": "any",
+    "AssemblyVersion": "0.2.0.0",
     "Tags": [
         "ACT",
         "Battle"
     ],
-    "DalamudApiLevel": 5
+    "DalamudApiLevel": 6
 }
