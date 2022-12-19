@@ -358,7 +358,7 @@ internal class PluginUI : IDisposable
     private void OnBuildUi_Debug()
     {
         if (!showDebug) return;
-        ImGui.Begin("Debug", ref showDebug, ImGuiWindowFlags.AlwaysAutoResize);
+        ImGui.Begin("Debug", ref showDebug);
         {
             ImGui.Text(
                 $"Total Dot DPS:{_plugin.Battles[choosed].TotalDotDamage / _plugin.Battles[choosed].Duration()}");

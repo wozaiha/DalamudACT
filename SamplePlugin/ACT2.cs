@@ -84,7 +84,7 @@ namespace DalamudACT
             var data = Marshal.PtrToStructure<ActorCast>(ptr);
             CastHook.Original(source, ptr);
             if (source > 0x40000000) return;
-            PluginLog.Debug($"Cast:{source:X}:{data.skillType}:{data.action_id}:{data.cast_time}");
+            PluginLog.Debug($"Cast:{source:X}:{data.skillType}:{data.action_id}:{data.cast_time}:{data.flag}:{data.unknown_2:X}:{data.unknown_3}");
             if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
                 if (Battles[^1].DataDic.TryGetValue(source, out _))
                     Battles[^1].AddSS(source, data.cast_time, data.action_id);
@@ -100,7 +100,7 @@ namespace DalamudACT
             if (type == ActorControlCategory.Death && entityId < 0x40000000)
             {
                 Battles[^1].AddEvent(6, entityId, buffID, 0, 0);
-                PluginLog.Error($"{entityId:X} killed by {buffID:X}");
+                PluginLog.Debug($"{entityId:X} killed by {buffID:X}");
                 return;
             } 
             // actorid:death:id1:id2:?:?:?:?:E0000000:0
@@ -215,7 +215,7 @@ namespace DalamudACT
                 //        "48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
                 //EffectHook.Enable();
                 ReceiveAbilityHook = Hook<ReceiveAbilityDelegate>.FromAddress(
-				   DalamudApi.SigScanner.ScanText("4C 89 44 24 ?? 55 56 57 41 54 41 55 41 56 48 8D 6C 24 ??"),
+				   DalamudApi.SigScanner.ScanText("4C 89 44 24 ?? 55 56 41 54 41 55 41 56"),
                     ReceiveAbilityEffect);
                 ReceiveAbilityHook.Enable(); 
                 ActorControlSelfHook =Hook<ActorControlSelfDelegate>.FromAddress(
