@@ -46,7 +46,7 @@ namespace DalamudACT
 
         #region OPcode & Hook functions
 
-        private unsafe void Ability(IntPtr headPtr, IntPtr effectPtr, uint sourceId, int length)
+        private unsafe void Ability(IntPtr headPtr, IntPtr effectPtr, IntPtr targetPtr, uint sourceId, int length)
         {
             PluginLog.Debug($"-----------------------Ability{length}:{sourceId:X}------------------------------");
             if (sourceId > 0x40000000) ACTBattle.pet.TryGetValue(sourceId, out sourceId);
@@ -54,7 +54,7 @@ namespace DalamudACT
 
             var header = Marshal.PtrToStructure<Header>(headPtr);
             var effect = (EffectEntry*)effectPtr;
-            var target = (ulong*)(effectPtr + 8 * sizeof(EffectEntry) * length + sizeof(Ender));
+            var target = (ulong*)targetPtr;
             
             for (var i = 0; i < length; i++)
             {
@@ -129,19 +129,19 @@ namespace DalamudACT
             switch (targetCount)
             {
                 case 1:
-                    Ability(effectHeader,effectArray, (uint)sourceId, 1);
+                    Ability(effectHeader,effectArray, effectTrail, (uint)sourceId, 1);
                     break;
                 case <= 8 and >1:
-                    Ability(effectHeader,effectArray, (uint)sourceId, 8);
+                    Ability(effectHeader,effectArray, effectTrail, (uint)sourceId, 8);
                     break;
                 case >8 and <=16:
-                    Ability(effectHeader,effectArray, (uint)sourceId, 16);
+                    Ability(effectHeader,effectArray, effectTrail, (uint)sourceId, 16);
                     break;
                 case >16 and <=24:
-                    Ability(effectHeader,effectArray, (uint)sourceId, 24);
+                    Ability(effectHeader,effectArray, effectTrail, (uint)sourceId, 24);
                     break;
                 case >24 and <=32:
-                    Ability(effectHeader,effectArray, (uint)sourceId, 32);
+                    Ability(effectHeader,effectArray, effectTrail, (uint)sourceId, 32);
                     break;
             }
 
