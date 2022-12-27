@@ -9,6 +9,7 @@ using ImGuiNET;
 using ImGuiScene;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
+using SharpDX.DXGI;
 using Action = Lumina.Excel.GeneratedSheets.Action;
 
 namespace DalamudACT;
@@ -82,6 +83,39 @@ internal class PluginUI : IDisposable
         changed |= ImGui.Checkbox("Show Delta", ref config.delta);
         if (changed) config.Save();
         ImGui.End();
+    }
+
+    private void DrawLimitBreak()
+    {
+        ImGui.BeginTooltip();
+        ImGui.BeginTable("LimitBreak", 3, ImGuiTableFlags.Borders);
+
+        ImGui.TableSetupColumn("###Icon");
+        ImGui.TableSetupColumn("###SkillName");
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (45f - ImGui.CalcTextSize("伤害").X) / 2);
+        ImGui.TableSetupColumn("DPS", ImGuiTableColumnFlags.WidthFixed, 45f);
+        ImGui.TableHeadersRow();
+
+        var damage = _plugin.Battles[choosed].LimitBreak.ToList();
+        damage.Sort((pair1, pair2) => pair2.Value.CompareTo(pair1.Value));
+        foreach (var (action, dmg) in damage)
+        {
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+            if (_plugin.Icon.TryGetValue(99, out var icon))
+                ImGui.Image(icon!.ImGuiHandle,
+                    new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+            ImGui.TableNextColumn();
+            ImGui.Text(sheet.GetRow(action)!.Name);
+            ImGui.TableNextColumn();
+            var temp = (float)dmg / _plugin.Battles[choosed].Duration();
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() -
+                                ImGui.CalcTextSize($"{temp,8:F1}").X);
+            ImGui.Text($"{temp,8:F1}");
+        }
+        
+        ImGui.EndTable();
+        ImGui.EndTooltip();
     }
 
     private void DrawDetails(uint actor, float totalDotSim)
@@ -321,6 +355,32 @@ internal class PluginUI : IDisposable
                     ImGui.Text(
                         $"{(float) _plugin.Battles[choosed].TotalDotDamage / _plugin.Battles[choosed].Duration(),8:F1}");
                     total += _plugin.Battles[choosed].TotalDotDamage;
+                }
+
+                if (_plugin.Battles[choosed].LimitBreak.Count > 0)
+                {
+                    long limitDamage = 0;
+                    foreach (var (skill,damage) in _plugin.Battles[choosed].LimitBreak)
+                    {
+                        limitDamage += damage;
+                    }
+                    ImGui.TableNextRow(); //LimitBreak
+                    ImGui.TableNextColumn();
+                    if (_plugin.Icon.TryGetValue(99, out var icon))
+                        ImGui.Image(icon!.ImGuiHandle,
+                            new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
+                    ImGui.TableNextColumn();
+                    ImGui.Text("极限技");
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() -
+                                        ImGui.CalcTextSize($"{(float)limitDamage / seconds,8:F1}").X);
+                    ImGui.Text($"{(float)limitDamage / seconds,8:F1}");
+                    if (ImGui.IsItemHovered()) DrawLimitBreak();
+                    total += limitDamage;
                 }
 
                 ImGui.TableNextRow(); //Total Damage

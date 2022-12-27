@@ -13,6 +13,7 @@ public class ACTBattle
 {
     public static ExcelSheet<Action> ActionSheet;
     public static Dictionary<uint, uint> pet = new();
+    public Dictionary<uint, long> LimitBreak = new();
 
     public ACTBattle(long time1, long time2)
     {
@@ -189,34 +190,42 @@ public class ACTBattle
         //伤害
         if (from != 0xE0000000 && kind == 3)
         {
-            if (Potency.SkillPot.TryGetValue(id, out var pot)) //基线技能
+
+            if (ActionSheet.GetRow(id)?.PrimaryCostType == 11) //LimitBreak
             {
-                if (DataDic[from].PotSkill == id)
+                if (LimitBreak.ContainsKey(id)) LimitBreak[id] += damage;
+                else LimitBreak.Add(id,damage);
+            }
+            else 
+            {
+                if (Potency.SkillPot.TryGetValue(id, out var pot)) //基线技能
                 {
-                    DataDic[from].SkillPotency += pot * Potency.Muti[DataDic[from].JobId];
+                    if (DataDic[from].PotSkill == id)
+                    {
+                        DataDic[from].SkillPotency += pot * Potency.Muti[DataDic[from].JobId];
+                    }
+                    else if (id > 10)
+                    {
+                        DataDic[from].PotSkill = id;
+                        DataDic[from].SkillPotency = pot * Potency.Muti[DataDic[from].JobId];
+                    }
                 }
-                else if (id > 10)
+
+                if (DataDic[from].Damages.ContainsKey(id))
                 {
-                    DataDic[from].PotSkill = id;
-                    DataDic[from].SkillPotency = pot * Potency.Muti[DataDic[from].JobId];
+                    DataDic[from].Damages[id].AddDamage(damage);
                 }
-            }
+                else
+                {
+                    DataDic[from].Damages.Add(id, new SkillDamage(damage));
+                    PluginUI.Icon.TryAdd(id,
+                        DalamudApi.DataManager.GetImGuiTextureHqIcon(ActionSheet.GetRow(id)!.Icon));
+                }
 
-            if (DataDic[from].Damages.ContainsKey(id))
-            {
-                DataDic[from].Damages[id].AddDamage(damage);
+                DataDic[from].Damages[id].AddDC(dc);
+                DataDic[from].Damages[0].AddDamage(damage);
+                DataDic[from].Damages[0].AddDC(dc);
             }
-            else
-            {
-                DataDic[from].Damages.Add(id, new SkillDamage(damage));
-                PluginUI.Icon.TryAdd(id,
-                    DalamudApi.DataManager.GetImGuiTextureHqIcon(ActionSheet.GetRow(id)!.Icon));
-            }
-
-            DataDic[from].Damages[id].AddDC(dc);
-
-            DataDic[from].Damages[0].AddDamage(damage);
-            DataDic[from].Damages[0].AddDC(dc);
         }
     }
 
