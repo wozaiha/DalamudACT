@@ -179,7 +179,9 @@ namespace DalamudACT
                     //开始战斗
                     Battles[^1].StartTime = now;
                     Battles[^1].EndTime = now;
-                    Battles[^1].Zone = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name ?? "Unknown";
+                    Battles[^1].Zone = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.ContentFinderCondition.Value?.Name 
+                                       ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name 
+                                       ?? "Unknown";
                     PluginUi.choosed = Battles.Count - 1;
                     //ACTBattle.SearchForPet();
                 }

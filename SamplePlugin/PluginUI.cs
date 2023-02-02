@@ -251,7 +251,7 @@ internal class PluginUI : IDisposable
                     PluginLog.Error(e.ToString());
                 }
 
-                ImGui.SetNextItemWidth(160);
+                ImGui.SetNextItemWidth(250);
                 ImGui.Combo("##battles", ref choosed, items, _plugin.Battles.Count);
                 if (DalamudApi.ClientState.LocalPlayer != null &&
                     DalamudApi.Condition[ConditionFlag.InCombat] &&
