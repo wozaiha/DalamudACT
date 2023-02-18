@@ -2,6 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <InternalName>DalamudACT</InternalName>
     <Description>Dalamud Damage Display plugin.</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/wozaiha/DalamudACT</PackageProjectUrl>
@@ -15,7 +16,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <!--<OutputPath>$(AppData)\XIVLauncher\devPlugins\SamplePlugin\</OutputPath>-->
+    <!--<OutputPath>D:\Git\DalamudPlugins\plugins</OutputPath>-->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
@@ -109,9 +110,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="images\DDD.png">
+    <None Update="DDD.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
+  
 </Project>

@@ -34,9 +34,9 @@ internal class PluginUI : IDisposable
         _plugin = p;
         config = p.Configuration;
 
-        mainIcon = File.Exists(DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName + "\\images\\DDD.png")
+        mainIcon = File.Exists(DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName + "\\DDD.png")
             ? DalamudApi.PluginInterface.UiBuilder.LoadImage(
-                DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName + "\\images\\DDD.png")
+                DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName + "\\DDD.png")
             : DalamudApi.DataManager.GetImGuiTextureHqIcon(62142);
 
         DalamudApi.PluginInterface.UiBuilder.Draw += Draw;
