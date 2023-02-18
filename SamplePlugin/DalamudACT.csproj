@@ -108,4 +108,10 @@
 
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="images\DDD.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
