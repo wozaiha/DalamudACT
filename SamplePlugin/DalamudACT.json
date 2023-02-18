@@ -1,0 +1,17 @@
+﻿{
+  "Author": "wozaiha",
+  "Name": "DalamudACT",
+  "Punchline": "简单的显示一下DPS",
+  "Description": "非满级情况或野外有概率不精确,青魔不适用望周知",
+  "IconUrl": "",
+  "ImageUrls": [
+    ""
+  ],
+  "RepoUrl": "https://github.com/wozaiha/DalamudACT",
+  "CategoryTags": [
+    "ACT"
+  ],
+  "InternalName": "DalamudACT",
+  "AssemblyVersion": "9.9.9.9",
+  "DalamudApiLevel": 7
+}
