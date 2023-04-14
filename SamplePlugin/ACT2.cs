@@ -171,18 +171,22 @@ namespace DalamudACT
                 Battles.Add(new ACTBattle(0, 0));
                 ACTBattle.SearchForPet();
             }
-
-            if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
+            
+            //if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
                 if (DalamudApi.ClientState.LocalPlayer != null &&
                     DalamudApi.Condition[ConditionFlag.InCombat])
                 {
                     //开始战斗
-                    Battles[^1].StartTime = now;
+                    if (Battles[^1].StartTime is 0) Battles[^1].StartTime = now;
                     Battles[^1].EndTime = now;
-                    Battles[^1].Zone = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.ContentFinderCondition.Value?.Name 
-                                       ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name 
-                                       ?? "Unknown";
-                    PluginUi.choosed = Battles.Count - 1;
+                    Battles[^1].Zone = !string.IsNullOrEmpty(terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.ContentFinderCondition.Value?.Name) 
+                        ? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.ContentFinderCondition.Value?.Name
+                        : terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name
+                          ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceNameRegion.Value?.Name
+                          ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceNameZone.Value?.Name
+                        ?? "Unknown";
+
+                PluginUi.choosed = Battles.Count - 1;
                     //ACTBattle.SearchForPet();
                 }
         }

@@ -9,7 +9,6 @@ using ImGuiNET;
 using ImGuiScene;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
-using SharpDX.DXGI;
 using Action = Lumina.Excel.GeneratedSheets.Action;
 
 namespace DalamudACT;
@@ -197,6 +196,8 @@ internal class PluginUI : IDisposable
     {
         if (DalamudApi.Condition[ConditionFlag.PvPDisplayActive]) return;
         ImGui.SetNextWindowBgAlpha((float) config.BGColor / 100);
+
+
         if (config.Mini)
         {
             ImGui.Begin("Damage Beta",
