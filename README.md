@@ -6,6 +6,7 @@ This plugin use a different method to simulate dots so only keep the damage to y
 
 Please DONT USE THESE DATA TO JUDGE OTHERS,you are not the only kind people that play FFXIV.
 
+Please add this repo to use : `https://dalamud_cn_3rd.otters.cloud/plugins/all`
 
 Please Leave issues if you meet any.
 Have a good time.
