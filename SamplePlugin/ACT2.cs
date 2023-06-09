@@ -107,24 +107,15 @@ namespace DalamudACT
             if (entityId < 0x40000000) return;
             if (arg3 > 0x40000000) ACTBattle.pet.TryGetValue(arg3, out arg3);
             if (arg3 > 0x40000000) return;
-
-            if (type is ActorControlCategory.HoT_DoT)
+            
+            if (type is ActorControlCategory.DoT)
             {
-                if (arg0 != 0)
+                if (arg0 != 0 && Potency.BuffToAction.TryGetValue(arg0, out arg0))
                 {
-                    if (Potency.BuffToAction.TryGetValue(arg0, out arg0))
-                        Battles[^1].AddEvent(3, arg3, entityId, arg0, arg2);
+                    Battles[^1].AddEvent(3, arg3, entityId, arg0, arg1);
                 }
                 else
-                {
-                    Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg2);
-                }
-
-            }
-
-            if (type is (ActorControlCategory)1540)
-            {
-                Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg1);
+                    Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg1);
             }
 
         }
@@ -135,7 +126,7 @@ namespace DalamudACT
             var targetCount = *(byte*)(effectHeader + 0x21);
             switch (targetCount)
             {
-                case 1:
+                case <= 1:
                     Ability(effectHeader,effectArray, effectTrail, (uint)sourceId, 1);
                     break;
                 case <= 8 and >1:
