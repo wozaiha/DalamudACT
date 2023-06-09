@@ -92,34 +92,41 @@ namespace DalamudACT
 
 
 
-        private void ReceiveActorControlSelf(uint entityId, ActorControlCategory type, uint buffID, uint direct, uint damage, uint sourceId,
+        private void ReceiveActorControlSelf(uint entityId, ActorControlCategory type, uint arg0, uint arg1, uint arg2, uint arg3,
             uint arg4, uint arg5, ulong targetId, byte a10)
         {
             //PluginLog.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:{buffID}:{direct}:{damage}:{sourceId:X}:");
-            ActorControlSelfHook.Original(entityId, type, buffID, direct, damage, sourceId, arg4, arg5, targetId, a10);
+            ActorControlSelfHook.Original(entityId, type, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
             if (type == ActorControlCategory.Death && entityId < 0x40000000)
             {
-                Battles[^1].AddEvent(6, entityId, buffID, 0, 0);
-                PluginLog.Debug($"{entityId:X} killed by {buffID:X}");
+                Battles[^1].AddEvent(6, entityId, arg0, 0, 0);
+                PluginLog.Debug($"{entityId:X} killed by {arg0:X}");
                 return;
             } 
             // actorid:death:id1:id2:?:?:?:?:E0000000:0
             if (entityId < 0x40000000) return;
-            if (sourceId > 0x40000000) ACTBattle.pet.TryGetValue(sourceId, out sourceId);
-            if (sourceId > 0x40000000) return;
-            
-                
-            if (type != ActorControlCategory.HoT_DoT) return;
-            //if (!Battles[^1].DataDic.ContainsKey(sourceId)) return;
-            if (buffID != 0)
+            if (arg3 > 0x40000000) ACTBattle.pet.TryGetValue(arg3, out arg3);
+            if (arg3 > 0x40000000) return;
+
+            if (type is ActorControlCategory.HoT_DoT)
             {
-                if (Potency.BuffToAction.TryGetValue(buffID, out buffID))
-                    Battles[^1].AddEvent(3, sourceId, entityId, buffID, damage);
+                if (arg0 != 0)
+                {
+                    if (Potency.BuffToAction.TryGetValue(arg0, out arg0))
+                        Battles[^1].AddEvent(3, arg3, entityId, arg0, arg2);
+                }
+                else
+                {
+                    Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg2);
+                }
+
             }
-            else
+
+            if (type is (ActorControlCategory)1540)
             {
-                Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, damage);
+                Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg1);
             }
+
         }
 
         private unsafe void ReceiveAbilityEffect(int sourceId, IntPtr sourceCharacter, IntPtr pos, IntPtr effectHeader,
