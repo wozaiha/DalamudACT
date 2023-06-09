@@ -68,9 +68,7 @@ namespace DalamudACT
                         long damage = effect->param0;
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
                         PluginLog.Debug($"EffectEntry:{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
-                        if (j is 0 && header.actionId == 25750) //英勇之剑
-                            Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1,true);
-                        else Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1);
+                        Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1);
                     }
                     effect++;
                 }
@@ -95,7 +93,7 @@ namespace DalamudACT
         private void ReceiveActorControlSelf(uint entityId, ActorControlCategory type, uint arg0, uint arg1, uint arg2, uint arg3,
             uint arg4, uint arg5, ulong targetId, byte a10)
         {
-            //PluginLog.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:{buffID}:{direct}:{damage}:{sourceId:X}:");
+            //PluginLog.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:0={arg0}:1={arg1}:2={arg2}:3={arg3}:4={arg4}:5={arg5}:{targetId:X}:{a10}");
             ActorControlSelfHook.Original(entityId, type, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
             if (type == ActorControlCategory.Death && entityId < 0x40000000)
             {
@@ -105,14 +103,15 @@ namespace DalamudACT
             } 
             // actorid:death:id1:id2:?:?:?:?:E0000000:0
             if (entityId < 0x40000000) return;
-            if (arg3 > 0x40000000) ACTBattle.pet.TryGetValue(arg3, out arg3);
-            if (arg3 > 0x40000000) return;
+            if (arg2 > 0x40000000) ACTBattle.pet.TryGetValue(arg2, out arg2);
+            if (arg2 > 0x40000000) return;
             
             if (type is ActorControlCategory.DoT)
             {
+                PluginLog.Debug($"Dot:{arg0} from {arg2:X} ticked {arg1} damage on {entityId:X}");
                 if (arg0 != 0 && Potency.BuffToAction.TryGetValue(arg0, out arg0))
                 {
-                    Battles[^1].AddEvent(3, arg3, entityId, arg0, arg1);
+                    Battles[^1].AddEvent(3, arg2, entityId, arg0, arg1);
                 }
                 else
                     Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg1);

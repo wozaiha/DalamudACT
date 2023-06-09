@@ -130,7 +130,7 @@ public class ACTBattle
             DataDic[objectId].Speed = muti;
     }
 
-    public void AddEvent(int kind, uint from, uint target, uint id, long damage, byte dc = 0, bool mainTarget = false)
+    public void AddEvent(int kind, uint from, uint target, uint id, long damage, byte dc = 0)
     {
         if (!DalamudApi.Condition[ConditionFlag.BoundByDuty] &&
             !DalamudApi.Condition[ConditionFlag.InCombat]) return;
@@ -152,9 +152,6 @@ public class ACTBattle
                 return;
             }
         }
-        //PluginLog.Log($"{Name.Count}");
-
-        if (mainTarget) DataDic[from].DotMainTarget = target;
 
         //死亡
         if (kind == 6)

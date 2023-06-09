@@ -130,8 +130,6 @@ namespace DalamudACT
         public static Dictionary<uint, uint> DotPot = new()
         {
             { 248, 30 }, //厄运流转
-            { 725, 65 }, //沥血剑
-            { 2721, 80 },//大宝剑
             //{ 749, 60 }, //腐秽大地
             { 1837, 60 }, //音速破
             { 1838, 60 }, //弓形冲波
