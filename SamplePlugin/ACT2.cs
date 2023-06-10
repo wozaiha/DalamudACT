@@ -11,6 +11,7 @@ using ImGuiScene;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 using Action = Lumina.Excel.GeneratedSheets.Action;
+using EventKind = DalamudACT.Struct.ACTBattle.EventKind;
 
 namespace DalamudACT
 {
@@ -49,7 +50,7 @@ namespace DalamudACT
         private unsafe void Ability(IntPtr headPtr, IntPtr effectPtr, IntPtr targetPtr, uint sourceId, int length)
         {
             PluginLog.Debug($"-----------------------Ability{length}:{sourceId:X}------------------------------");
-            if (sourceId > 0x40000000) ACTBattle.pet.TryGetValue(sourceId, out sourceId);
+            if (sourceId > 0x40000000) ACTBattle.Pet.TryGetValue(sourceId, out sourceId);
             if (sourceId is > 0x40000000 or 0x0) return;
 
             var header = Marshal.PtrToStructure<Header>(headPtr);
@@ -68,7 +69,7 @@ namespace DalamudACT
                         long damage = effect->param0;
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
                         PluginLog.Debug($"EffectEntry:{3},{sourceId:X}:{(uint)*target}:{header.actionId},{damage}");
-                        Battles[^1].AddEvent(3, sourceId, (uint)*target, header.actionId, damage, effect->param1);
+                        Battles[^1].AddEvent(EventKind.Damage, sourceId, (uint)*target, header.actionId, damage, effect->param1);
                     }
                     effect++;
                 }
@@ -97,13 +98,13 @@ namespace DalamudACT
             ActorControlSelfHook.Original(entityId, type, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
             if (type == ActorControlCategory.Death && entityId < 0x40000000)
             {
-                Battles[^1].AddEvent(6, entityId, arg0, 0, 0);
+                Battles[^1].AddEvent(ACTBattle.EventKind.Death, entityId, arg0, 0, 0);
                 PluginLog.Debug($"{entityId:X} killed by {arg0:X}");
                 return;
             } 
             // actorid:death:id1:id2:?:?:?:?:E0000000:0
             if (entityId < 0x40000000) return;
-            if (arg2 > 0x40000000) ACTBattle.pet.TryGetValue(arg2, out arg2);
+            if (arg2 > 0x40000000) ACTBattle.Pet.TryGetValue(arg2, out arg2);
             if (arg2 > 0x40000000) return;
             
             if (type is ActorControlCategory.DoT)
@@ -111,10 +112,10 @@ namespace DalamudACT
                 PluginLog.Debug($"Dot:{arg0} from {arg2:X} ticked {arg1} damage on {entityId:X}");
                 if (arg0 != 0 && Potency.BuffToAction.TryGetValue(arg0, out arg0))
                 {
-                    Battles[^1].AddEvent(3, arg2, entityId, arg0, arg1);
+                    Battles[^1].AddEvent(EventKind.Damage, arg2, entityId, arg0, arg1);
                 }
                 else
-                    Battles[^1].AddEvent(3, 0xE000_0000, entityId, 0, arg1);
+                    Battles[^1].AddEvent(EventKind.Damage, 0xE000_0000, entityId, 0, arg1);
             }
 
         }
@@ -169,23 +170,21 @@ namespace DalamudACT
                 ACTBattle.SearchForPet();
             }
             
-            //if (Battles[^1].StartTime is 0 && Battles[^1].EndTime is 0)
-                if (DalamudApi.ClientState.LocalPlayer != null &&
-                    DalamudApi.Condition[ConditionFlag.InCombat])
-                {
-                    //开始战斗
-                    if (Battles[^1].StartTime is 0) Battles[^1].StartTime = now;
-                    Battles[^1].EndTime = now;
-                    Battles[^1].Zone = !string.IsNullOrEmpty(terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.ContentFinderCondition.Value?.Name) 
-                        ? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.ContentFinderCondition.Value?.Name
-                        : terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name
-                          ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceNameRegion.Value?.Name
-                          ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceNameZone.Value?.Name
-                        ?? "Unknown";
+            if (DalamudApi.ClientState.LocalPlayer != null &&
+                DalamudApi.Condition[ConditionFlag.InCombat])
+            {
+                //开始战斗
+                if (Battles[^1].StartTime is 0) Battles[^1].StartTime = now;
+                Battles[^1].EndTime = now;
+                Battles[^1].Zone = !string.IsNullOrEmpty(terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.ContentFinderCondition.Value?.Name!) 
+                    ? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.ContentFinderCondition.Value?.Name!
+                    : terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name
+                      ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceNameRegion.Value?.Name
+                      ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceNameZone.Value?.Name
+                      ?? "Unknown";
 
                 PluginUi.choosed = Battles.Count - 1;
-                    //ACTBattle.SearchForPet();
-                }
+            }
         }
 
         private void Update(Framework framework)
@@ -247,10 +246,10 @@ namespace DalamudACT
             var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
             NpcSpawnHook.Original(a, target, ptr);
             if (obj.spawnerId == 0xE0000000) return;
-            if (ACTBattle.pet.ContainsKey(target))
-                ACTBattle.pet[target] = obj.spawnerId;
+            if (ACTBattle.Pet.ContainsKey(target))
+                ACTBattle.Pet[target] = obj.spawnerId;
             else
-                ACTBattle.pet.Add(target, obj.spawnerId);
+                ACTBattle.Pet.Add(target, obj.spawnerId);
             PluginLog.Debug($"Spawn:{target:X}:{obj.spawnerId:X}");
         }
 

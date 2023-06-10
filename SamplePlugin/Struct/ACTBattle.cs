@@ -11,9 +11,26 @@ namespace DalamudACT.Struct;
 
 public class ACTBattle
 {
-    public static ExcelSheet<Action> ActionSheet;
-    public static Dictionary<uint, uint> pet = new();
-    public Dictionary<uint, long> LimitBreak = new();
+    private const int Total = 0;
+
+
+    public static ExcelSheet<Action>? ActionSheet;
+    public static readonly Dictionary<uint, uint> Pet = new();
+    public readonly Dictionary<uint, long> LimitBreak = new();
+
+    public long StartTime;
+    public long EndTime;
+    public string? Zone;
+    public int? Level;
+    public readonly Dictionary<uint, string> Name = new();
+    public readonly Dictionary<uint, Data> DataDic = new();
+    public readonly Dictionary<long, long> PlayerDotPotency = new();
+
+    public readonly List<Dot> ActiveDots = new();
+    public long TotalDotDamage;
+    public float TotalDotSim;
+    public Dictionary<long, float> DotDmgList = new();
+
 
     public ACTBattle(long time1, long time2)
     {
@@ -36,7 +53,6 @@ public class ACTBattle
         public uint JobId;
         public float Speed = 1f;
         public uint Death = 0;
-        public uint DotMainTarget = 0xE0000000;
     }
 
     public class SkillDamage
@@ -77,18 +93,7 @@ public class ACTBattle
             Damage += damage;
         }
     }
-
-    public long StartTime;
-    public long EndTime;
-    public string? Zone;
-    public int? Level;
-    public Dictionary<uint, string> Name = new();
-    public Dictionary<uint, Data> DataDic = new();
-
-    public Dictionary<long, long> PlayerDotPotency = new();
-
-    public List<Dot> ActiveDots = new();
-    public long TotalDotDamage;
+    
 
 
     public long Duration()
@@ -130,7 +135,13 @@ public class ACTBattle
             DataDic[objectId].Speed = muti;
     }
 
-    public void AddEvent(int kind, uint from, uint target, uint id, long damage, byte dc = 0)
+    public enum EventKind
+    {
+        Damage = 3,
+        Death = 6,
+    }
+
+    public void AddEvent(EventKind eventKind, uint from, uint target, uint id, long damage, byte dc = 0)
     {
         if (!DalamudApi.Condition[ConditionFlag.BoundByDuty] &&
             !DalamudApi.Condition[ConditionFlag.InCombat]) return;
@@ -141,7 +152,7 @@ public class ACTBattle
             return;
         }
 
-        PluginLog.Debug($"AddEvent:{kind}:{from:X}:{target:X}:{id}:{damage}");
+        PluginLog.Debug($"AddEvent:{eventKind}:{from:X}:{target:X}:{id}:{damage}");
 
         if (!Name.ContainsKey(from) && from != 0xE0000000)
         {
@@ -154,7 +165,7 @@ public class ACTBattle
         }
 
         //死亡
-        if (kind == 6)
+        if (eventKind == EventKind.Death)
         {
             if (!Name.ContainsKey(from)) return;
             DataDic[from].Death++;
@@ -162,13 +173,13 @@ public class ACTBattle
         }
 
         //DOT 伤害
-        if (from == 0xE0000000 && kind == 3)
+        if (from == 0xE0000000 && eventKind == EventKind.Damage)
         {
             if (!CheckTargetDot(target)) return;
             TotalDotDamage += damage;
             foreach (var dot in ActiveDots)
             {
-                if (dot.Source > 0x40000000) pet.TryGetValue(dot.Source, out dot.Source);
+                if (dot.Source > 0x40000000) Pet.TryGetValue(dot.Source, out dot.Source);
                 if (dot.Source > 0x40000000) continue;
                 if (!DataDic.ContainsKey(dot.Source)) AddPlayer(dot.Source);
                 if (!DataDic.ContainsKey(dot.Source)) continue;
@@ -178,14 +189,13 @@ public class ACTBattle
                     PlayerDotPotency[active] += Potency.DotPot[dot.BuffId];
                 else
                     PlayerDotPotency.Add(active,Potency.DotPot[dot.BuffId]);
-
-                if (dot.BuffId == 2721 && DataDic.ContainsKey(dot.Source) && DataDic[dot.Source].DotMainTarget != target) //大宝剑
-                    PlayerDotPotency[active] -= Potency.DotPot[dot.BuffId] / 2;
             }
+
+            CalcDot();
         }
 
         //伤害
-        if (from != 0xE0000000 && kind == 3)
+        if (from != 0xE0000000 && eventKind == EventKind.Damage)
         {
 
             if (ActionSheet.GetRow(id)?.PrimaryCostType == 11) //LimitBreak
@@ -220,10 +230,30 @@ public class ACTBattle
                 }
 
                 DataDic[from].Damages[id].AddDC(dc);
-                DataDic[from].Damages[0].AddDamage(damage);
-                DataDic[from].Damages[0].AddDC(dc);
+                DataDic[from].Damages[Total].AddDamage(damage);
+                DataDic[from].Damages[Total].AddDC(dc);
             }
         }
+    }
+
+    private void CalcDot()
+    {
+        TotalDotSim = 0;
+        foreach (var (active, potency) in PlayerDotPotency)
+        {
+            var source = (uint) (active & 0xFFFFFFFF);
+            var dmg = DPP(source) * potency;
+            TotalDotSim += dmg;
+            if (!DotDmgList.TryAdd(active,dmg)) DotDmgList[active] = dmg;
+        }
+
+        foreach (var (active,damage) in DotDmgList)
+        {
+            DotDmgList[active]  = damage / TotalDotSim * TotalDotDamage;
+        }
+
+        var dic = from entry in DotDmgList orderby entry.Value descending select entry;
+        DotDmgList = dic.ToDictionary(x=> x.Key,x => x.Value);
     }
 
     private static long DotToActive(Dot dot)
@@ -255,7 +285,7 @@ public class ACTBattle
             if (Potency.DotPot.ContainsKey(status.StatusId))
             {
                 var source = status.SourceId;
-                if (status.SourceId > 0x40000000) pet.TryGetValue(source, out source);
+                if (status.SourceId > 0x40000000) Pet.TryGetValue(source, out source);
                 ActiveDots.Add(new Dot()
                     {BuffId = status.StatusId, Source = source});
             }
@@ -266,17 +296,17 @@ public class ACTBattle
 
     public static void SearchForPet()
     {
-        pet.Clear();
+        Pet.Clear();
         foreach (var obj in DalamudApi.ObjectTable)
         {
             if (obj == null) continue;
             if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
             var owner = ((BattleNpc) obj).OwnerId;
             if (owner == 0xE0000000) continue;
-            if (pet.ContainsKey(owner))
-                pet[owner] = obj.ObjectId;
+            if (Pet.ContainsKey(owner))
+                Pet[owner] = obj.ObjectId;
             else
-                pet.Add(obj.ObjectId, owner);
+                Pet.Add(obj.ObjectId, owner);
             PluginLog.Debug($"SearchForPet:{obj.ObjectId:X}:{owner:X}");
         }
     }
