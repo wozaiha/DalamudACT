@@ -198,7 +198,7 @@ public class ACTBattle
         if (from != 0xE0000000 && eventKind == EventKind.Damage)
         {
 
-            if (ActionSheet.GetRow(id)?.PrimaryCostType == 11) //LimitBreak
+            if (ActionSheet!.GetRow(id)?.PrimaryCostType == 11) //LimitBreak
             {
                 if (LimitBreak.ContainsKey(id)) LimitBreak[id] += damage;
                 else LimitBreak.Add(id,damage);
@@ -226,7 +226,7 @@ public class ACTBattle
                 {
                     DataDic[from].Damages.Add(id, new SkillDamage(damage));
                     PluginUI.Icon.TryAdd(id,
-                        DalamudApi.DataManager.GetImGuiTextureHqIcon(ActionSheet.GetRow(id)!.Icon));
+                        DalamudApi.DataManager.GetImGuiTextureHqIcon(ActionSheet!.GetRow(id)!.Icon));
                 }
 
                 DataDic[from].Damages[id].AddDC(dc);
