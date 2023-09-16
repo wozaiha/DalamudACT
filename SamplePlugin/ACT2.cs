@@ -228,7 +228,7 @@ namespace DalamudACT
                 //        "48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
                 //EffectHook.Enable();
                 ReceiveAbilityHook = Hook<ReceiveAbilityDelegate>.FromAddress(
-                    DalamudApi.SigScanner.ScanText("4C 89 44 24 ?? 55 56 41 54 41 55 41 56"),
+                    DalamudApi.SigScanner.ScanText("40 55 53 57 41 54 41 55 41 56 41 57 48 8D AC 24 ?? ?? ?? ?? 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 70"),
                     ReceiveAbilityEffect);
                 ReceiveAbilityHook.Enable();
                 ActorControlSelfHook = Hook<ActorControlSelfDelegate>.FromAddress(

@@ -189,6 +189,10 @@ internal class PluginUI : IDisposable
         }
 
         ImGui.EndTable();
+        if (battle.DataDic[actor].MaxDamageSkill != 0)
+        {
+            ImGui.Text($"最大伤害 : {sheet.GetRow(battle.DataDic[actor].MaxDamageSkill)?.Name} - {battle.DataDic[actor].MaxDamage:N0}");
+        }
         ImGui.EndTooltip();
     }
 

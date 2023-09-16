@@ -53,6 +53,8 @@ public class ACTBattle
         public uint JobId;
         public float Speed = 1f;
         public uint Death = 0;
+        public uint MaxDamageSkill = 0;
+        public uint MaxDamage = 0;
     }
 
     public class SkillDamage
@@ -227,6 +229,12 @@ public class ACTBattle
                     DataDic[from].Damages.Add(id, new SkillDamage(damage));
                     PluginUI.Icon.TryAdd(id,
                         DalamudApi.DataManager.GetImGuiTextureHqIcon(ActionSheet!.GetRow(id)!.Icon));
+                }
+
+                if (DataDic[from].MaxDamage < damage)
+                {
+                    DataDic[from].MaxDamage = (uint)damage;
+                    DataDic[from].MaxDamageSkill = id;
                 }
 
                 DataDic[from].Damages[id].AddDC(dc);
