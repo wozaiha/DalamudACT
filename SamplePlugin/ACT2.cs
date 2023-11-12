@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Dalamud.Game;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.Command;
 using Dalamud.Hooking;
+using Dalamud.Interface.Internal;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using DalamudACT.Struct;
-using ImGuiScene;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 using Action = Lumina.Excel.GeneratedSheets.Action;
@@ -22,7 +23,7 @@ namespace DalamudACT
         public Configuration Configuration;
         private PluginUI PluginUi;
 
-        public Dictionary<uint, TextureWrap?> Icon = new();
+        public Dictionary<uint, IDalamudTextureWrap?> Icon = new();
         public List<ACTBattle> Battles = new(5);
         private ExcelSheet<TerritoryType> terrySheet;
 
@@ -173,7 +174,7 @@ namespace DalamudACT
                 if (Battles.Count == 5)
                 {
                     Battles.RemoveAt(0);
-                    PluginUi.choosed--;
+                    PluginUI.choosed--;
                 }
 
                 Battles.Add(new ACTBattle(0, 0));
@@ -181,7 +182,7 @@ namespace DalamudACT
             }
 
             if (DalamudApi.ClientState.LocalPlayer != null &&
-                DalamudApi.Condition[ConditionFlag.InCombat])
+                DalamudApi.Conditions[ConditionFlag.InCombat])
             {
                 //开始战斗
                 if (Battles[^1].StartTime is 0) Battles[^1].StartTime = now;
@@ -194,11 +195,11 @@ namespace DalamudACT
                       ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceNameZone.Value?.Name
                       ?? "Unknown";
 
-                PluginUi.choosed = Battles.Count - 1;
+                PluginUI.choosed = Battles.Count - 1;
             }
         }
 
-        private void Update(Framework framework)
+        private void Update(IFramework framework)
         {
             CheckTime();
         }
@@ -206,14 +207,14 @@ namespace DalamudACT
 
         public ACT(DalamudPluginInterface pluginInterface)
         {
-            DalamudApi.Initialize(this, pluginInterface);
+            DalamudApi.Initialize(pluginInterface);
 
-            terrySheet = DalamudApi.DataManager.GetExcelSheet<TerritoryType>()!;
-            ACTBattle.ActionSheet = DalamudApi.DataManager.GetExcelSheet<Action>()!;
+            terrySheet = DalamudApi.GameData.GetExcelSheet<TerritoryType>()!;
+            ACTBattle.ActionSheet = DalamudApi.GameData.GetExcelSheet<Action>()!;
 
-            for (uint i = 62100; i < 62141; i++) Icon.Add(i - 62100, DalamudApi.DataManager.GetImGuiTextureHqIcon(i));
+            for (uint i = 62100; i < 62141; i++) Icon.Add(i - 62100, DalamudApi.Textures.GetIcon(i));
 
-            Icon.Add(99, DalamudApi.DataManager.GetImGuiTextureHqIcon(103)); //LB
+            Icon.Add(99, DalamudApi.Textures.GetIcon(103)); //LB
 
             Battles.Add(new ACTBattle(0, 0));
 
@@ -221,35 +222,38 @@ namespace DalamudACT
             Configuration.Initialize(DalamudApi.PluginInterface);
 
             #region Hook
-
             {
-                //EffectHook = new Hook<EffectDelegate>(
-                //    DalamudApi.SigScanner.ScanText(
-                //        "48 89 5C 24 ?? 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B DA"), Effect);
-                //EffectHook.Enable();
-                ReceiveAbilityHook = Hook<ReceiveAbilityDelegate>.FromAddress(
+                ReceiveAbilityHook = DalamudApi.Interop.HookFromAddress<ReceiveAbilityDelegate>(
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 4C 24 ?? 48 33 CC E8 ?? ?? ?? ?? 48 8B 9C 24 ?? ?? ?? ?? 48 83 C4 60 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ??"),
                     ReceiveAbilityEffect);
                 ReceiveAbilityHook.Enable();
-                ActorControlSelfHook = Hook<ActorControlSelfDelegate>.FromAddress(
+                ActorControlSelfHook = DalamudApi.Interop.HookFromAddress<ActorControlSelfDelegate>(
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
-                NpcSpawnHook = Hook<NpcSpawnDelegate>.FromAddress(
+                NpcSpawnHook = DalamudApi.Interop.HookFromAddress<NpcSpawnDelegate>(
                     DalamudApi.SigScanner.ScanText(
                         "E8 ?? ?? ?? ?? 48 8B 5C 24 ?? 48 83 C4 20 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 57 48 83 EC 20 48 8B DA 8B F9 "),
                     ReceiveNpcSpawn);
                 NpcSpawnHook.Enable();
-                CastHook = Hook<CastDelegate>.FromAddress(
-                    DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"),
-                    StartCast);
+                CastHook = DalamudApi.Interop.HookFromAddress<CastDelegate>(
+                    DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), StartCast);
                 CastHook.Enable();
             }
 
             #endregion
 
             DalamudApi.Framework.Update += Update;
-
+            
             PluginUi = new PluginUI(this);
+
+            DalamudApi.Commands.AddHandler("/act", new CommandInfo(OnCommand)
+            {
+                HelpMessage = "显示DAct设置窗口."
+            });
+
+            DalamudApi.PluginInterface.UiBuilder.Draw += DrawUI;
+            DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
+
         }
 
         private void ReceiveNpcSpawn(nint a, uint target, nint ptr)
@@ -283,23 +287,29 @@ namespace DalamudACT
             ReceiveAbilityHook.Dispose();
             NpcSpawnHook.Dispose();
             CastHook.Dispose();
-            //EffectHook.Dispose();
-            DalamudApi.Dispose();
         }
 
-        [Command("/act")]
-        [HelpMessage("显示设置窗口.")]
-        private void ToggleConfig(string command, string args)
+        private void OnCommand(string command, string args)
         {
             switch (args)
             {
                 case "" or null:
-                    PluginUi.DrawConfigUI();
+                    PluginUi.configWindow.IsOpen = true;
                     break;
                 case "debug":
-                    PluginUi.ShowDebug();
+                    PluginUi.debugWindow.IsOpen = true;
                     break;
             }
+        }
+
+        private void DrawUI()
+        {
+            this.PluginUi.WindowSystem.Draw();
+        }
+
+        public void DrawConfigUI()
+        {
+            PluginUi.configWindow.IsOpen = true;
         }
     }
 }

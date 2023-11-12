@@ -145,8 +145,8 @@ public class ACTBattle
 
     public void AddEvent(EventKind eventKind, uint from, uint target, uint id, long damage, byte dc = 0)
     {
-        if (!DalamudApi.Condition[ConditionFlag.BoundByDuty] &&
-            !DalamudApi.Condition[ConditionFlag.InCombat]) return;
+        if (!DalamudApi.Conditions[ConditionFlag.BoundByDuty] &&
+            !DalamudApi.Conditions[ConditionFlag.InCombat]) return;
 
         if (from > 0x40000000 && from != 0xE0000000 || from == 0x0)
         {
@@ -228,7 +228,7 @@ public class ACTBattle
                 {
                     DataDic[from].Damages.Add(id, new SkillDamage(damage));
                     PluginUI.Icon.TryAdd(id,
-                        DalamudApi.DataManager.GetImGuiTextureHqIcon(ActionSheet!.GetRow(id)!.Icon));
+                        DalamudApi.Textures.GetIcon(ActionSheet!.GetRow(id)!.Icon));
                 }
 
                 if (DataDic[from].MaxDamage < damage)
