@@ -60,13 +60,13 @@ internal class PluginUI : IDisposable
         foreach (var (_, texture) in BuffIcon) texture?.Dispose();
         mainIcon?.Dispose();
 
-        this.WindowSystem.RemoveAllWindows();
+        WindowSystem.RemoveAllWindows();
         configWindow.Dispose();
         debugWindow.Dispose();
         mainWindow?.Dispose();
     }
     
-    public class ConfigWindow : Dalamud.Interface.Windowing.Window, IDisposable
+    public class ConfigWindow : Window, IDisposable
     {
 
         public ConfigWindow(ACT plugin) : base("ACT Config Window", ImGuiWindowFlags.AlwaysAutoResize, false)
@@ -91,7 +91,7 @@ internal class PluginUI : IDisposable
         }
     }
 
-    public class DebugWindow : Dalamud.Interface.Windowing.Window, IDisposable
+    public class DebugWindow : Window, IDisposable
     {
 
         public DebugWindow(ACT plugin) : base("ACT Debug Window")
@@ -175,7 +175,7 @@ internal class PluginUI : IDisposable
         }
     }
 
-    public class MainWindow : Dalamud.Interface.Windowing.Window, IDisposable
+    public class MainWindow : Window, IDisposable
     {
 
         public MainWindow(ACT plugin) : base("ACT Main Window")
@@ -186,9 +186,11 @@ internal class PluginUI : IDisposable
         public override void Draw()
         {
             
+
+
             if (DalamudApi.Conditions[ConditionFlag.PvPDisplayActive]) return;
-            DrawMini();
-            if (config.Mini) return;
+            if (config.Mini) DrawMini();
+                else return;
             if (_plugin.Battles.Count < 1) return;
             Flags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar |
                     (config.NoResize ? ImGuiWindowFlags.NoResize : ImGuiWindowFlags.None) |
@@ -212,14 +214,14 @@ internal class PluginUI : IDisposable
                     for (var i = 0; i < _plugin.Battles.Count - 1; i++)
                         items[i] =
                             $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime).ToLocalTime():t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime).ToLocalTime():t} {_plugin.Battles[i].Zone}";
-                    // PluginLog.Information(items[i]);
+                    // DalamudApi.Log.Information(items[i]);
                     try
                     {
                         items[_plugin.Battles.Count - 1] = $"Current: {_plugin.Battles[^1].Zone}";
                     }
                     catch (Exception e)
                     {
-                        PluginLog.Error(e.ToString());
+                        DalamudApi.Log.Error(e.ToString());
                     }
 
                     ImGui.SetNextItemWidth(250);
@@ -504,8 +506,6 @@ internal class PluginUI : IDisposable
                 }
 
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("还原");
-
-                return;
             }
         }
 

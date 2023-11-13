@@ -27,6 +27,7 @@ public class DalamudApi
     [PluginService][RequiredVersion("1.0")] public static ITargetManager Targets { get; private set; } = null!;
     [PluginService][RequiredVersion("1.0")] public static IGameInteropProvider Interop { get; private set; } = null!;
     [PluginService][RequiredVersion("1.0")] public static ITextureProvider Textures { get; private set; } = null!;
-    [PluginService][RequiredVersion("1.0")] public static IObjectTable ObjectTable { get; private set; } = null!; 
+    [PluginService][RequiredVersion("1.0")] public static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService][RequiredVersion("1.0")] public static IPluginLog Log { get; private set; } = null!;
     // @formatter:on
 }

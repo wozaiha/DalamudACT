@@ -150,18 +150,18 @@ public class ACTBattle
 
         if (from > 0x40000000 && from != 0xE0000000 || from == 0x0)
         {
-            PluginLog.Error($"Unknown Id {from:X}");
+            DalamudApi.Log.Error($"Unknown Id {from:X}");
             return;
         }
 
-        PluginLog.Debug($"AddEvent:{eventKind}:{from:X}:{target:X}:{id}:{damage}");
+        DalamudApi.Log.Debug($"AddEvent:{eventKind}:{from:X}:{target:X}:{id}:{damage}");
 
         if (!Name.ContainsKey(from) && from != 0xE0000000)
         {
             var added = AddPlayer(from);
             if (!added)
             {
-                PluginLog.Error($"{from:X} is not found");
+                DalamudApi.Log.Error($"{from:X} is not found");
                 return;
             }
         }
@@ -282,14 +282,14 @@ public class ACTBattle
         var target = DalamudApi.ObjectTable.SearchById(id);
         if (target == null || target.ObjectKind != ObjectKind.BattleNpc)
         {
-            PluginLog.Error($"Dot target {id:X} is not BattleNpc");
+            DalamudApi.Log.Error($"Dot target {id:X} is not BattleNpc");
             return false;
         }
 
         var npc = (BattleNpc) target;
         foreach (var status in npc.StatusList)
         {
-            PluginLog.Debug($"Check Dot on {id:X}:{status.StatusId}:{status.SourceId}");
+            DalamudApi.Log.Debug($"Check Dot on {id:X}:{status.StatusId}:{status.SourceId}");
             if (Potency.DotPot.ContainsKey(status.StatusId))
             {
                 var source = status.SourceId;
@@ -315,7 +315,7 @@ public class ACTBattle
                 Pet[owner] = obj.ObjectId;
             else
                 Pet.Add(obj.ObjectId, owner);
-            PluginLog.Debug($"SearchForPet:{obj.ObjectId:X}:{owner:X}");
+            DalamudApi.Log.Debug($"SearchForPet:{obj.ObjectId:X}:{owner:X}");
         }
     }
 }

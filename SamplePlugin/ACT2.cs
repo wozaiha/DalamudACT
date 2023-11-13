@@ -54,7 +54,7 @@ namespace DalamudACT
 
         private unsafe void Ability(nint headPtr, nint effectPtr, nint targetPtr, uint sourceId, int length)
         {
-            PluginLog.Debug($"-----------------------Ability{length}:{sourceId:X}------------------------------");
+            DalamudApi.Log.Debug($"-----------------------Ability{length}:{sourceId:X}------------------------------");
             if (sourceId > 0x40000000) ACTBattle.Pet.TryGetValue(sourceId, out sourceId);
             if (sourceId is > 0x40000000 or 0x0) return;
 
@@ -64,17 +64,17 @@ namespace DalamudACT
 
             for (var i = 0; i < length; i++)
             {
-                PluginLog.Debug(
+                DalamudApi.Log.Debug(
                     $"{*target:X} effect:{effect->type}:{effect->param0}:{effect->param1}:{effect->param2}:{effect->param3}:{effect->param4}:{effect->param5}");
                 if (*target == 0x0) break;
-                //PluginLog.Debug($"{*target:X}");
+                //DalamudApi.Log.Debug($"{*target:X}");
                 for (var j = 0; j < 8; j++)
                 {
                     if (effect->type == 3) //damage
                     {
                         long damage = effect->param0;
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
-                        PluginLog.Debug($"EffectEntry:{3},{sourceId:X}:{(uint) *target}:{header.actionId},{damage}");
+                        DalamudApi.Log.Debug($"EffectEntry:{3},{sourceId:X}:{(uint) *target}:{header.actionId},{damage}");
                         Battles[^1].AddEvent(EventKind.Damage, sourceId, (uint) *target, header.actionId, damage,
                             effect->param1);
                     }
@@ -85,7 +85,7 @@ namespace DalamudACT
                 target++;
             }
 
-            PluginLog.Debug("------------------------END------------------------------");
+            DalamudApi.Log.Debug("------------------------END------------------------------");
         }
 
         private void StartCast(uint source, nint ptr)
@@ -93,7 +93,7 @@ namespace DalamudACT
             var data = Marshal.PtrToStructure<ActorCast>(ptr);
             CastHook.Original(source, ptr);
             if (source > 0x40000000) return;
-            PluginLog.Debug(
+            DalamudApi.Log.Debug(
                 $"Cast:{source:X}:{data.skillType}:{data.action_id}:{data.cast_time}:{data.flag}:{data.unknown_2:X}:{data.unknown_3}");
             if (data.skillType == 1 && Potency.SkillPot.ContainsKey(data.action_id))
                 if (Battles[^1].DataDic.TryGetValue(source, out _))
@@ -104,12 +104,12 @@ namespace DalamudACT
             uint arg3,
             uint arg4, uint arg5, ulong targetId, byte a10)
         {
-            //PluginLog.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:0={arg0}:1={arg1}:2={arg2}:3={arg3}:4={arg4}:5={arg5}:{targetId:X}:{a10}");
+            //DalamudApi.Log.Debug($"ReceiveActorControlSelf{entityId:X}:{type}:0={arg0}:1={arg1}:2={arg2}:3={arg3}:4={arg4}:5={arg5}:{targetId:X}:{a10}");
             ActorControlSelfHook.Original(entityId, type, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
             if (type == ActorControlCategory.Death && entityId < 0x40000000)
             {
-                Battles[^1].AddEvent(ACTBattle.EventKind.Death, entityId, arg0, 0, 0);
-                PluginLog.Debug($"{entityId:X} killed by {arg0:X}");
+                Battles[^1].AddEvent(EventKind.Death, entityId, arg0, 0, 0);
+                DalamudApi.Log.Debug($"{entityId:X} killed by {arg0:X}");
                 return;
             }
 
@@ -120,7 +120,7 @@ namespace DalamudACT
 
             if (type is ActorControlCategory.DoT)
             {
-                PluginLog.Debug($"Dot:{arg0} from {arg2:X} ticked {arg1} damage on {entityId:X}");
+                DalamudApi.Log.Debug($"Dot:{arg0} from {arg2:X} ticked {arg1} damage on {entityId:X}");
                 if (arg0 != 0 && Potency.BuffToAction.TryGetValue(arg0, out arg0))
                 {
                     Battles[^1].AddEvent(EventKind.Damage, arg2, entityId, arg0, arg1);
@@ -265,7 +265,7 @@ namespace DalamudACT
                 ACTBattle.Pet[target] = obj.spawnerId;
             else
                 ACTBattle.Pet.Add(target, obj.spawnerId);
-            PluginLog.Debug($"Spawn:{target:X}:{obj.spawnerId:X}");
+            DalamudApi.Log.Debug($"Spawn:{target:X}:{obj.spawnerId:X}");
         }
 
         public void Disable()
@@ -304,7 +304,7 @@ namespace DalamudACT
 
         private void DrawUI()
         {
-            this.PluginUi.WindowSystem.Draw();
+            PluginUi.WindowSystem.Draw();
         }
 
         public void DrawConfigUI()
