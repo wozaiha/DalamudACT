@@ -186,11 +186,12 @@ internal class PluginUI : IDisposable
         public override void Draw()
         {
             
-
-
             if (DalamudApi.Conditions[ConditionFlag.PvPDisplayActive]) return;
-            if (config.Mini) DrawMini();
-                else return;
+            if (config.Mini)
+            {
+                DrawMini();
+                return;
+            }
             if (_plugin.Battles.Count < 1) return;
             Flags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar |
                     (config.NoResize ? ImGuiWindowFlags.NoResize : ImGuiWindowFlags.None) |
