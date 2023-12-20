@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Dalamud;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Command;
 using Dalamud.Hooking;
@@ -230,9 +231,12 @@ namespace DalamudACT
                 ActorControlSelfHook = DalamudApi.Interop.HookFromAddress<ActorControlSelfDelegate>(
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
+
+                var SpawnSig = (uint) DalamudApi.ClientState.ClientLanguage == 4 //国服
+                    ? "E8 ?? ?? ?? ?? 48 8B 5C 24 30 48 83 C4 ?? 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 08 57 48 83 EC ?? 48 8B DA 8B F9"
+                    : "E8 ?? ?? ?? ?? 4C 8B C3 48 8D 0D ?? ?? ?? ?? 8B D7 E8 ?? ?? ?? ?? 48 8B 5C 24 30 48 83 C4 ?? 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 08";
                 NpcSpawnHook = DalamudApi.Interop.HookFromAddress<NpcSpawnDelegate>(
-                    DalamudApi.SigScanner.ScanText(
-                        "E8 ?? ?? ?? ?? 48 8B 5C 24 ?? 48 83 C4 20 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 57 48 83 EC 20 48 8B DA 8B F9 "),
+                    DalamudApi.SigScanner.ScanText(SpawnSig),
                     ReceiveNpcSpawn);
                 NpcSpawnHook.Enable();
                 CastHook = DalamudApi.Interop.HookFromAddress<CastDelegate>(
