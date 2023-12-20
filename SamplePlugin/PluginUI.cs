@@ -200,13 +200,14 @@ internal class PluginUI : IDisposable
             {
                 var battle = _plugin.Battles[choosed];
                 var seconds = battle.Duration();
-                ImGui.BeginMenuBar();
+                if (ImGui.BeginMenuBar())
                 {
                     if (ImGui.ArrowButton("Mini", ImGuiDir.Left))
                     {
                         config.Mini = !config.Mini;
                         config.WindowSize = ImGui.GetWindowSize();
                         config.Save();
+                        return;
                     }
 
                     if (ImGui.IsItemHovered()) ImGui.SetTooltip("最小化");
@@ -215,7 +216,6 @@ internal class PluginUI : IDisposable
                     for (var i = 0; i < _plugin.Battles.Count - 1; i++)
                         items[i] =
                             $"{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].StartTime).ToLocalTime():t}-{DateTimeOffset.FromUnixTimeSeconds(_plugin.Battles[i].EndTime).ToLocalTime():t} {_plugin.Battles[i].Zone}";
-                    // DalamudApi.Log.Information(items[i]);
                     try
                     {
                         items[_plugin.Battles.Count - 1] = $"Current: {_plugin.Battles[^1].Zone}";
@@ -236,11 +236,9 @@ internal class PluginUI : IDisposable
                     ImGui.SameLine(ImGui.GetWindowSize().X - 44);
                     if (ImGui.Button(config.HideName ? "" : "")) config.HideName = !config.HideName;
                     if (ImGui.IsItemHovered()) ImGui.SetTooltip(config.HideName ? "看" : "藏");
+                    ImGui.EndMenuBar();
                 }
-                ImGui.EndMenuBar();
-
-
-
+                
                 long total = 0;
                 Dictionary<uint, long> dmgList = new();
 
@@ -499,11 +497,13 @@ internal class PluginUI : IDisposable
                 Flags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar |
                         (config.NoResize ? ImGuiWindowFlags.NoResize : ImGuiWindowFlags.None) |
                         (config.Lock ? ImGuiWindowFlags.NoMove : ImGuiWindowFlags.None);
+                
                 if (ImGui.ImageButton(mainIcon.ImGuiHandle, new Vector2(40f)))
                 {
+                    Flags ^= ImGuiWindowFlags.AlwaysAutoResize;
                     config.Mini = !config.Mini;
-                    ImGui.SetWindowSize(config.WindowSize);
                     config.Save();
+                    ImGui.SetWindowSize(config.WindowSize);
                 }
 
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("还原");
