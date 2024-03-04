@@ -209,7 +209,6 @@ namespace DalamudACT
         public ACT(DalamudPluginInterface pluginInterface)
         {
             DalamudApi.Initialize(pluginInterface);
-
             terrySheet = DalamudApi.GameData.GetExcelSheet<TerritoryType>()!;
             ACTBattle.ActionSheet = DalamudApi.GameData.GetExcelSheet<Action>()!;
 
@@ -232,9 +231,7 @@ namespace DalamudACT
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
 
-                var SpawnSig = (uint) DalamudApi.ClientState.ClientLanguage == 4 //国服
-                    ? "E8 ?? ?? ?? ?? 48 8B 5C 24 30 48 83 C4 ?? 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 08 57 48 83 EC ?? 48 8B DA 8B F9"
-                    : "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 81 EC ?? ?? ?? ?? 8B F2 49 8B D8 41 0F B6 50 ?? 48 8B F9 E8 ?? ?? ?? ?? 4C 8D 44 24 ?? C7 44 24 ?? ?? ?? ?? ?? B8 ?? ?? ?? ?? 66 66 0F 1F 84 00 ?? ?? ?? ?? 4D 8D 80 ?? ?? ?? ?? 0F 10 03 0F 10 4B 10 48 8D 9B ?? ?? ?? ?? 41 0F 11 40 ?? 0F 10 43 A0 41 0F 11 48 ?? 0F 10 4B B0 41 0F 11 40 ?? 0F 10 43 C0 41 0F 11 48 ?? 0F 10 4B D0 41 0F 11 40 ?? 0F 10 43 E0 41 0F 11 48 ?? 0F 10 4B F0 41 0F 11 40 ?? 41 0F 11 48 ?? 48 83 E8 01 75 A5 48 8B 03 ";
+                var SpawnSig = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 81 EC ?? ?? ?? ?? 8B F2 49 8B D8 41 0F B6 50 ?? 48 8B F9 E8 ?? ?? ?? ?? 4C 8D 44 24 ?? C7 44 24 ?? ?? ?? ?? ?? B8 ?? ?? ?? ?? 66 66 0F 1F 84 00 ?? ?? ?? ?? 4D 8D 80 ?? ?? ?? ?? 0F 10 03 0F 10 4B 10 48 8D 9B ?? ?? ?? ?? 41 0F 11 40 ?? 0F 10 43 A0 41 0F 11 48 ?? 0F 10 4B B0 41 0F 11 40 ?? 0F 10 43 C0 41 0F 11 48 ?? 0F 10 4B D0 41 0F 11 40 ?? 0F 10 43 E0 41 0F 11 48 ?? 0F 10 4B F0 41 0F 11 40 ?? 41 0F 11 48 ?? 48 83 E8 01 75 A5 48 8B 03 ";
                 NpcSpawnHook = DalamudApi.Interop.HookFromAddress<NpcSpawnDelegate>(
                     DalamudApi.SigScanner.ScanText(SpawnSig),
                     ReceiveNpcSpawn);
