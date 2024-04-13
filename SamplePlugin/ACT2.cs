@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Dalamud;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Command;
 using Dalamud.Hooking;
 using Dalamud.Interface.Internal;
-using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using DalamudACT.Struct;
@@ -27,18 +25,14 @@ namespace DalamudACT
         public Dictionary<uint, IDalamudTextureWrap?> Icon = new();
         public List<ACTBattle> Battles = new(5);
         private ExcelSheet<TerritoryType> terrySheet;
-
-        //private delegate void EffectDelegate(uint sourceId, IntPtr sourceCharacter);
-        //private Hook<EffectDelegate> EffectHook;
-
+        
         private delegate void ReceiveAbilityDelegate(int sourceId, nint sourceCharacter, nint pos,
             nint effectHeader, nint effectArray, nint effectTrail);
 
         private Hook<ReceiveAbilityDelegate> ReceiveAbilityHook;
 
         private delegate void ActorControlSelfDelegate(uint entityId, ActorControlCategory id, uint arg0, uint arg1,
-            uint arg2,
-            uint arg3, uint arg4, uint arg5, ulong targetId, byte a10);
+            uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10);
 
         private Hook<ActorControlSelfDelegate> ActorControlSelfHook;
 
@@ -156,13 +150,7 @@ namespace DalamudACT
 
             ReceiveAbilityHook.Original(sourceId, sourceCharacter, pos, effectHeader, effectArray, effectTrail);
         }
-
-        //private void Effect(uint sourceId, IntPtr ptr)
-        //{
-        //    Ability(ptr, sourceId, 1);
-        //    EffectHook.Original(sourceId, ptr);
-        //}
-
+        
         #endregion
 
         private void CheckTime()
@@ -183,7 +171,7 @@ namespace DalamudACT
             }
 
             if (DalamudApi.ClientState.LocalPlayer != null &&
-                DalamudApi.Conditions[ConditionFlag.InCombat])
+                DalamudApi.Conditions[ConditionFlag.InCombat] || DalamudApi.Conditions[ConditionFlag.DutyRecorderPlayback])
             {
                 //开始战斗
                 if (Battles[^1].StartTime is 0) Battles[^1].StartTime = now;
@@ -262,10 +250,7 @@ namespace DalamudACT
             var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
             NpcSpawnHook.Original(a, target, ptr);
             if (obj.spawnerId == 0xE0000000) return;
-            if (ACTBattle.Pet.ContainsKey(target))
-                ACTBattle.Pet[target] = obj.spawnerId;
-            else
-                ACTBattle.Pet.Add(target, obj.spawnerId);
+            ACTBattle.Pet[target] = obj.spawnerId;
             DalamudApi.Log.Debug($"Spawn:{target:X}:{obj.spawnerId:X}");
         }
 
