@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Command;
 using Dalamud.Hooking;
 using Dalamud.Interface.Internal;
@@ -69,7 +70,7 @@ namespace DalamudACT
                     {
                         long damage = effect->param0;
                         if (effect->param5 == 0x40) damage += effect->param4 << 16;
-                        DalamudApi.Log.Debug($"EffectEntry:{3},{sourceId:X}:{(uint) *target}:{header.actionId},{damage}");
+                        DalamudApi.Log.Debug($"EffectEntry:{3},{sourceId:X}:{(uint) *target:X}:{header.actionId},{damage}");
                         Battles[^1].AddEvent(EventKind.Damage, sourceId, (uint) *target, header.actionId, damage,
                             effect->param1);
                     }
@@ -155,8 +156,9 @@ namespace DalamudACT
 
         private void CheckTime()
         {
+            var inCombat = (DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) != 0;
             var now = DateTimeOffset.Now.ToUnixTimeSeconds();
-            if (Battles[^1].EndTime > 0 && now - Battles[^1].EndTime > 10)
+            if (Battles[^1].EndTime > 0 && !inCombat)
             {
                 Battles[^1].ActiveDots.Clear();
                 //新的战斗
@@ -170,8 +172,7 @@ namespace DalamudACT
                 ACTBattle.SearchForPet();
             }
 
-            if (DalamudApi.ClientState.LocalPlayer != null &&
-                DalamudApi.Conditions[ConditionFlag.InCombat] || DalamudApi.Conditions[ConditionFlag.DutyRecorderPlayback])
+            if (DalamudApi.ClientState.LocalPlayer != null && inCombat)
             {
                 //开始战斗
                 if (Battles[^1].StartTime is 0) Battles[^1].StartTime = now;

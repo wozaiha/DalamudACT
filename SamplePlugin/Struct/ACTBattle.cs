@@ -144,8 +144,7 @@ public class ACTBattle
 
     public void AddEvent(EventKind eventKind, uint from, uint target, uint id, long damage, byte dc = 0)
     {
-        if (!DalamudApi.Conditions[ConditionFlag.BoundByDuty] &&
-            !DalamudApi.Conditions[ConditionFlag.InCombat]) return;
+        if ((DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) == 0) return;
 
         if (from > 0x40000000 && from != 0xE0000000 || from == 0x0)
         {
