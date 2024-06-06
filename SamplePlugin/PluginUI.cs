@@ -289,7 +289,7 @@ internal class PluginUI : IDisposable
                 }
             }
 
-            while (savedBattle.Count > config.SaveTime) //删除不必要的数据
+            while (savedBattle.Count > config.SaveTime + 2) //删除不必要的数据
             {
                 savedBattle.RemoveAt(0);
             }
@@ -438,7 +438,7 @@ internal class PluginUI : IDisposable
             long total = 0;
             Dictionary<uint, long> dmgList = new();
             var seconds = battle.Duration();
-            var index = Math.Min(savedBattle.Count, config.CalcTime) - 1;
+            var index = Math.Min(savedBattle.Count, config.CalcTime + 1) - 1;
 
             foreach (var (actor, damage) in battle.DataDic)
             {
