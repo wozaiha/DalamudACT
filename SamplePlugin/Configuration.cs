@@ -16,6 +16,10 @@ namespace DalamudACT
         public int BGColor = 100;
         public bool delta = false;
 
+        public bool SaveData = false;
+        public int SaveTime = 30;
+        public int CalcTime = 30;
+
         // the below exist just to make saving less cumbersome
 
         [NonSerialized] private DalamudPluginInterface? pluginInterface;
