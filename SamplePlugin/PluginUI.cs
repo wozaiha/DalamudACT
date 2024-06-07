@@ -272,7 +272,7 @@ internal class PluginUI : IDisposable
             var battle = _plugin.Battles[^1];
             var now = DateTimeOffset.Now.ToUnixTimeSeconds();
 
-            if (startTime != battle.StartTime)
+            if (startTime != battle.StartTime && battle.StartTime != 0)
                 //新的战斗
             {
                 savedBattle.Clear();
