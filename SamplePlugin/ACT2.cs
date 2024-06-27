@@ -201,7 +201,7 @@ namespace DalamudACT
             terrySheet = DalamudApi.GameData.GetExcelSheet<TerritoryType>()!;
             ACTBattle.ActionSheet = DalamudApi.GameData.GetExcelSheet<Action>()!;
 
-            for (uint i = 62100; i < 62141; i++) Icon.Add(i - 62100, DalamudApi.Textures.GetIcon(i));
+            for (uint i = 62100; i <= 62100 + 42; i++) Icon.Add(i - 62100, DalamudApi.Textures.GetIcon(i));
 
             Icon.Add(99, DalamudApi.Textures.GetIcon(103)); //LB
 

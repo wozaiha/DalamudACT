@@ -185,9 +185,9 @@ public class ACTBattle
                 
                 var active = DotToActive(dot);
                 if (PlayerDotPotency.ContainsKey(active))
-                    PlayerDotPotency[active] += Potency.DotPot[dot.BuffId];
+                    PlayerDotPotency[active] += DotPot()[dot.BuffId];
                 else
-                    PlayerDotPotency.Add(active,Potency.DotPot[dot.BuffId]);
+                    PlayerDotPotency.Add(active,DotPot()[dot.BuffId]);
             }
 
             CalcDot();
@@ -204,7 +204,7 @@ public class ACTBattle
             }
             else 
             {
-                if (Potency.SkillPot.TryGetValue(id, out var pot)) //基线技能
+                if (SkillPot().TryGetValue(id, out var pot)) //基线技能
                 {
                     if (DataDic[from].PotSkill == id)
                     {
@@ -287,7 +287,7 @@ public class ACTBattle
         foreach (var status in npc.StatusList)
         {
             DalamudApi.Log.Debug($"Check Dot on {id:X}:{status.StatusId}:{status.SourceId}");
-            if (Potency.DotPot.ContainsKey(status.StatusId))
+            if (DotPot().ContainsKey(status.StatusId))
             {
                 var source = status.SourceId;
                 if (status.SourceId > 0x40000000) Pet.TryGetValue(source, out source);
@@ -315,4 +315,18 @@ public class ACTBattle
             DalamudApi.Log.Debug($"SearchForPet:{obj.ObjectId:X}:{owner:X}");
         }
     }
+
+    private Dictionary<uint, uint> DotPot()
+    {
+        if (Level >= 94) return Potency.DotPot;
+            else return Potency.DotPot94;
+    }
+
+    private Dictionary<uint, float> SkillPot()
+    {
+        if (Level >= 94) return Potency.SkillPot;
+            else return Potency.SkillPot94;
+    }
+
+
 }
