@@ -269,7 +269,7 @@ internal class PluginUI : IDisposable
         private void CheckSave(Dictionary<uint, long> dmgList)
         {
             if (_plugin.Battles.Count < 1) return;
-            var battle = _plugin.Battles[^1];
+            var battle = _plugin.Battles[choosed];
             var now = DateTimeOffset.Now.ToUnixTimeSeconds();
 
             if (startTime != battle.StartTime && battle.StartTime != 0)
