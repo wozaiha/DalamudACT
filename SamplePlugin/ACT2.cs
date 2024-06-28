@@ -213,9 +213,11 @@ namespace DalamudACT
             #region Hook
             {
                 ReceiveAbilityHook = DalamudApi.Interop.HookFromAddress<ReceiveAbilityDelegate>(
-                    DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 4C 24 ?? 48 33 CC E8 ?? ?? ?? ?? 48 8B 9C 24 ?? ?? ?? ?? 48 83 C4 60 5F C3 CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24 ??"),
+                    DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 4C 24 ?? 48 33 CC E8 ?? ?? ?? ?? 48 8B 9C 24 ?? ?? ?? ?? 48 83 C4 60 5F C3 CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 48 89 74 24 ??"),
                     ReceiveAbilityEffect);
                 ReceiveAbilityHook.Enable();
+                //48 89 5C 24 ? 57 48 83 EC 60 48 8B 05 ? ? ? ? 48 33 C4 48 89 44 24 ? 48 8B DA 最后函数
+
                 ActorControlSelfHook = DalamudApi.Interop.HookFromAddress<ActorControlSelfDelegate>(
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
@@ -225,9 +227,11 @@ namespace DalamudACT
                     DalamudApi.SigScanner.ScanText(SpawnSig),
                     ReceiveNpcSpawn);
                 NpcSpawnHook.Enable();
+
                 CastHook = DalamudApi.Interop.HookFromAddress<CastDelegate>(
-                    DalamudApi.SigScanner.ScanText("40 55 56 48 81 EC ?? ?? ?? ?? 48 8B EA"), StartCast);
+                    DalamudApi.SigScanner.ScanText("40 56 41 56 48 81 EC ?? ?? ?? ?? 48 8B F2 "), StartCast);
                 CastHook.Enable();
+                //E8 ? ? ? ? 84 C0 75 12 0F 57 C0 第一个
             }
 
             #endregion
