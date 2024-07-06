@@ -5,6 +5,8 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Interface.Internal;
+using Dalamud.Interface.Textures;
+using Dalamud.Interface.Textures.TextureWraps;
 using ImGuiNET;
 using Lumina.Excel;
 using Action = Lumina.Excel.GeneratedSheets.Action;
@@ -39,9 +41,9 @@ internal class PluginUI : IDisposable
         config = p.Configuration;
 
         mainIcon = File.Exists(DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName + "\\DDD.png")
-            ? DalamudApi.PluginInterface?.UiBuilder.LoadImage(
-                DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName + "\\DDD.png")
-            : DalamudApi.Textures.GetIcon(62142);
+            ? DalamudApi.Textures.GetFromFile(
+                DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName + "\\DDD.png").RentAsync().Result
+            : DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(62142)).RentAsync().Result;
 
         configWindow = new ConfigWindow(_plugin);
         debugWindow = new DebugWindow(_plugin);
@@ -199,7 +201,7 @@ internal class PluginUI : IDisposable
 
         public MainWindow(ACT plugin) : base("ACT Main Window")
         {
-
+            Flags = ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar;
         }
 
         public override void Draw()
@@ -212,7 +214,7 @@ internal class PluginUI : IDisposable
                 return;
             }
             if (_plugin.Battles.Count < 1) return;
-            Flags = ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar |
+            Flags = ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar |
                     (config.NoResize ? ImGuiWindowFlags.NoResize : ImGuiWindowFlags.None) |
                     (config.Lock ? ImGuiWindowFlags.NoMove : ImGuiWindowFlags.None);
             BgAlpha = config.BGColor / 100f;
@@ -641,7 +643,7 @@ internal class PluginUI : IDisposable
                     var source = (uint)(active & 0xFFFFFFFF);
                     if (!BuffIcon.ContainsKey(buff))
                         BuffIcon.TryAdd(buff,
-                            DalamudApi.Textures.GetIcon(buffSheet.GetRow(buff)!.Icon));
+                            DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(buffSheet.GetRow(buff)!.Icon)).RentAsync().Result);
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();

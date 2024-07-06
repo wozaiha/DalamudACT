@@ -6,6 +6,8 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Command;
 using Dalamud.Hooking;
 using Dalamud.Interface.Internal;
+using Dalamud.Interface.Textures;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using DalamudACT.Struct;
@@ -195,15 +197,15 @@ namespace DalamudACT
         }
 
 
-        public ACT(DalamudPluginInterface pluginInterface)
+        public ACT(IDalamudPluginInterface pluginInterface)
         {
             DalamudApi.Initialize(pluginInterface);
             terrySheet = DalamudApi.GameData.GetExcelSheet<TerritoryType>()!;
             ACTBattle.ActionSheet = DalamudApi.GameData.GetExcelSheet<Action>()!;
 
-            for (uint i = 62100; i <= 62100 + 42; i++) Icon.Add(i - 62100, DalamudApi.Textures.GetIcon(i));
+            for (uint i = 62100; i <= 62100 + 42; i++) Icon.Add(i - 62100, DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(i)).RentAsync().Result);
 
-            Icon.Add(99, DalamudApi.Textures.GetIcon(103)); //LB
+            Icon.Add(99, DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(103)).RentAsync().Result); //LB
 
             Battles.Add(new ACTBattle(0, 0));
 
@@ -237,16 +239,17 @@ namespace DalamudACT
             #endregion
 
             DalamudApi.Framework.Update += Update;
-            
+
             PluginUi = new PluginUI(this);
 
             DalamudApi.Commands.AddHandler("/act", new CommandInfo(OnCommand)
             {
-                HelpMessage = "显示DAct设置窗口."
+                HelpMessage = "/act 显示DAct主窗口\n /act config 显示设置窗口"
             });
 
             DalamudApi.PluginInterface.UiBuilder.Draw += DrawUI;
             DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
+            DalamudApi.PluginInterface.UiBuilder.OpenMainUi += DrawMainUI;
 
         }
 
@@ -284,7 +287,10 @@ namespace DalamudACT
         {
             switch (args)
             {
-                case "" or null:
+                case null:
+                    PluginUi.mainWindow.IsOpen = !PluginUi.mainWindow.IsOpen; 
+                    break;
+                case "config":
                     PluginUi.configWindow.IsOpen = true;
                     break;
                 case "debug":
@@ -301,6 +307,11 @@ namespace DalamudACT
         public void DrawConfigUI()
         {
             PluginUi.configWindow.IsOpen = true;
+        }
+
+        public void DrawMainUI()
+        {
+            PluginUi.mainWindow.IsOpen = true;
         }
     }
 }

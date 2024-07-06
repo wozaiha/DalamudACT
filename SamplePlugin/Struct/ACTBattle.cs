@@ -2,6 +2,7 @@
 using System.Linq;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Interface.Textures;
 using Lumina.Excel;
 using Action = Lumina.Excel.GeneratedSheets.Action;
 
@@ -108,13 +109,13 @@ public class ACTBattle
     private bool AddPlayer(uint objectId)
     {
         var actor = DalamudApi.ObjectTable.FirstOrDefault(x =>
-            x.ObjectId == objectId && x.ObjectKind == ObjectKind.Player);
+            x.EntityId == objectId && x.ObjectKind == ObjectKind.Player);
         if (actor == default || actor.Name.TextValue == "") return false;
         Name.Add(objectId, actor.Name.TextValue);
         DataDic.Add(objectId, new Data());
         DataDic[objectId].Damages = new Dictionary<uint, SkillDamage> {{0, new SkillDamage()}};
 
-        DataDic[objectId].JobId = ((Character) actor).ClassJob.Id;
+        DataDic[objectId].JobId = ((ICharacter) actor).ClassJob.Id;
         DataDic[objectId].PotSkill = Potency.BaseSkill[DataDic[objectId].JobId];
         DataDic[objectId].SkillPotency = 0;
         DataDic[objectId].Speed = 1f;
@@ -225,7 +226,7 @@ public class ACTBattle
                 {
                     DataDic[from].Damages.Add(id, new SkillDamage(damage));
                     PluginUI.Icon.TryAdd(id,
-                        DalamudApi.Textures.GetIcon(ActionSheet!.GetRow(id)!.Icon));
+                        DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(ActionSheet!.GetRow(id)!.Icon)).RentAsync().Result);
                 }
 
                 if (DataDic[from].MaxDamage < damage)
@@ -283,7 +284,7 @@ public class ACTBattle
             return false;
         }
 
-        var npc = (BattleNpc) target;
+        var npc = (IBattleNpc) target;
         foreach (var status in npc.StatusList)
         {
             DalamudApi.Log.Debug($"Check Dot on {id:X}:{status.StatusId}:{status.SourceId}");
@@ -306,13 +307,13 @@ public class ACTBattle
         {
             if (obj == null) continue;
             if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
-            var owner = ((BattleNpc) obj).OwnerId;
+            var owner = ((IBattleNpc) obj).OwnerId;
             if (owner == 0xE0000000) continue;
             if (Pet.ContainsKey(owner))
-                Pet[owner] = obj.ObjectId;
+                Pet[owner] = obj.EntityId;
             else
-                Pet.Add(obj.ObjectId, owner);
-            DalamudApi.Log.Debug($"SearchForPet:{obj.ObjectId:X}:{owner:X}");
+                Pet.Add(obj.EntityId, owner);
+            DalamudApi.Log.Debug($"SearchForPet:{obj.EntityId:X}:{owner:X}");
         }
     }
 
