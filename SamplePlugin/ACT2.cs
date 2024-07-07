@@ -287,8 +287,8 @@ namespace DalamudACT
         {
             switch (args)
             {
-                case null:
-                    PluginUi.mainWindow.IsOpen = !PluginUi.mainWindow.IsOpen; 
+                case null or "":
+                    PluginUi.mainWindow.IsOpen = true; 
                     break;
                 case "config":
                     PluginUi.configWindow.IsOpen = true;
