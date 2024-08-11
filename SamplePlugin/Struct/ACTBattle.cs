@@ -152,7 +152,7 @@ public class ACTBattle
             return;
         }
 
-        DalamudApi.Log.Debug($"AddEvent:{eventKind}:{from:X}:{target:X}:{id}:{damage}");
+        DalamudApi.Log.Verbose($"AddEvent:{eventKind}:{from:X}:{target:X}:{id}:{damage}");
 
         if (!Name.ContainsKey(from) && from != 0xE0000000)
         {
@@ -287,7 +287,7 @@ public class ACTBattle
         var npc = (IBattleNpc) target;
         foreach (var status in npc.StatusList)
         {
-            DalamudApi.Log.Debug($"Check Dot on {id:X}:{status.StatusId}:{status.SourceId}");
+            DalamudApi.Log.Verbose($"Check Dot on {id:X}:{status.StatusId}:{status.SourceId}");
             if (DotPot().ContainsKey(status.StatusId))
             {
                 var source = status.SourceId;
@@ -313,7 +313,7 @@ public class ACTBattle
                 Pet[owner] = obj.EntityId;
             else
                 Pet.Add(obj.EntityId, owner);
-            DalamudApi.Log.Debug($"SearchForPet:{obj.EntityId:X}:{owner:X}");
+            DalamudApi.Log.Verbose($"SearchForPet:{obj.EntityId:X}:{owner:X}");
         }
     }
 
