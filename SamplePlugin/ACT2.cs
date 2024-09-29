@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
@@ -39,7 +40,7 @@ namespace DalamudACT
 
         private Hook<ActorControlSelfDelegate> ActorControlSelfHook;
 
-        private delegate void NpcSpawnDelegate(nint a, uint sourceId, nint sourceCharacter);
+        private delegate nint NpcSpawnDelegate(uint sourceId, nint sourceCharacter);
 
         private Hook<NpcSpawnDelegate> NpcSpawnHook;
 
@@ -224,7 +225,7 @@ namespace DalamudACT
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
 
-                var SpawnSig = "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 81 EC ?? ?? ?? ?? 8B F2 49 8B D8 41 0F B6 50 ?? 48 8B F9 E8 ?? ?? ?? ?? 4C 8D 44 24 ?? C7 44 24 ?? ?? ?? ?? ?? B8 ?? ?? ?? ?? 66 66 0F 1F 84 00 ?? ?? ?? ?? 4D 8D 80 ?? ?? ?? ?? 0F 10 03 0F 10 4B 10 48 8D 9B ?? ?? ?? ?? 41 0F 11 40 ?? 0F 10 43 A0 41 0F 11 48 ?? 0F 10 4B B0 41 0F 11 40 ?? 0F 10 43 C0 41 0F 11 48 ?? 0F 10 4B D0 41 0F 11 40 ?? 0F 10 43 E0 41 0F 11 48 ?? 0F 10 4B F0 41 0F 11 40 ?? 41 0F 11 48 ?? 48 83 E8 01 75 A5 48 8B 03 ";
+                var SpawnSig = "E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 44 0F B6 43 ?? ";
                 NpcSpawnHook = DalamudApi.Interop.HookFromAddress<NpcSpawnDelegate>(
                     DalamudApi.SigScanner.ScanText(SpawnSig),
                     ReceiveNpcSpawn);
@@ -251,15 +252,17 @@ namespace DalamudACT
             DalamudApi.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
             DalamudApi.PluginInterface.UiBuilder.OpenMainUi += DrawMainUI;
 
+            //DalamudApi.Log.Warning($"-{DalamudApi.GameData.Excel.GetSheet<World>()!.GetRow(1081)!.IsPublic}");
         }
 
-        private void ReceiveNpcSpawn(nint a, uint target, nint ptr)
+        private nint ReceiveNpcSpawn(uint target, nint ptr)
         {
             var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
-            NpcSpawnHook.Original(a, target, ptr);
-            if (obj.spawnerId == 0xE0000000) return;
+            var result = NpcSpawnHook.Original(target, ptr);
+            DalamudApi.Log.Warning($"Spawn:{target:X}:{obj.spawnerId:X}");
+            if (obj.spawnerId == 0xE0000000) return result;
             ACTBattle.Pet[target] = obj.spawnerId;
-            DalamudApi.Log.Verbose($"Spawn:{target:X}:{obj.spawnerId:X}");
+            return result;
         }
 
         public void Disable()
