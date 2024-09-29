@@ -259,7 +259,7 @@ namespace DalamudACT
         {
             var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
             var result = NpcSpawnHook.Original(target, ptr);
-            DalamudApi.Log.Warning($"Spawn:{target:X}:{obj.spawnerId:X}");
+            DalamudApi.Log.Verbose($"Spawn:{target:X}:{obj.spawnerId:X}");
             if (obj.spawnerId == 0xE0000000) return result;
             ACTBattle.Pet[target] = obj.spawnerId;
             return result;
