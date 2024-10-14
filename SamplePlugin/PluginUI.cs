@@ -260,8 +260,9 @@ internal class PluginUI : IDisposable
                     ImGui.EndMenuBar();
                 }
 
-                if (!config.SaveData) DrawData(battle);
-                else DrawDataWithCalc(battle);
+                //if (!config.SaveData) 
+                    DrawData(battle);
+                //else DrawDataWithCalc(battle);
             }
 
         }
@@ -315,6 +316,7 @@ internal class PluginUI : IDisposable
 
             ImGui.BeginTable("ACTMainWindow", 7, ImGuiTableFlags.Hideable | ImGuiTableFlags.Resizable);
             {
+                ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableSetupColumn("###Icon",
                     ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoHide |
                     ImGuiTableColumnFlags.NoDirectResize,
