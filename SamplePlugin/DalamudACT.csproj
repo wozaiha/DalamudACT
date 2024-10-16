@@ -61,10 +61,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="DalamudPackager.targets" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="DalamudPackager" Version="2.1.10" />
   </ItemGroup>
 
