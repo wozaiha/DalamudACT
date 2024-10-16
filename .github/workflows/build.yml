@@ -42,7 +42,7 @@ jobs:
         run: |
           dotnet build --no-restore --configuration Release --nologo
       - name: Archive
-        run: Compress-Archive -Path ${{ env.repo_name }}/bin/Release/* -DestinationPath P${{ env.repo_name }}enumbra.zip
+        run: Compress-Archive -Path ${{ env.repo_name }}/bin/Release/* -DestinationPath ${{ env.repo_name }}.zip
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4
         with:
