@@ -5,12 +5,11 @@
                 ProjectDir="$(ProjectDir)"
                 OutputPath="$(OutputPath)"
                 AssemblyName="$(AssemblyName)"
-                MakeZip="false"/>
-	</Target>
+                MakeZip="true"/>
 
-    <!--</Target>
+    </Target>
         <Target Name="COPY" AfterTargets="PackagePlugin"
             Condition="'$(Configuration)' == 'Release'">
       <Exec Command="xcopy $(OutputPath)$(AssemblyName) D:\Git\DalamudPlugins\plugins\$(AssemblyName)\ /Y"/>
-    </Target>-->
+    </Target>
 </Project>
