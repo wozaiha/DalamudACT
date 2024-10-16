@@ -7,12 +7,12 @@ on:
   pull_request:
 
 jobs:
-  get-repo-name:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: windows-latest
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v2
-
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Extract repository name
         id: extract_repo_name
         run: |
@@ -22,12 +22,6 @@ jobs:
           echo "Repository Name: $REPO_NAME"
           # Set the repository name as an output
           echo "repo_name=$REPO_NAME" >> $GITHUB_ENV
-  build:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
