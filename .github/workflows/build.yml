@@ -13,15 +13,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Extract repository name
-        id: extract_repo_name
+      - name: Set up repository name environment variable
+        shell: pwsh
         run: |
-          REPO_FULL_NAME=${GITHUB_REPOSITORY}
-          # Extract repository name from REPO_FULL_NAME
-          REPO_NAME=${REPO_FULL_NAME##*/}
-          echo "Repository Name: $REPO_NAME"
-          # Set the repository name as an output
-          echo "repo_name=$REPO_NAME" >> $GITHUB_ENV
+          $repoName = $env:GITHUB_REPOSITORY.Split('/')[1]
+          echo "repo_name=$repoName" >> $env:GITHUB_ENV
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
