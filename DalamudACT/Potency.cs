@@ -46,6 +46,7 @@ namespace DalamudACT
             2.8f / 3f, //绝枪战士
             1.04f / 1.2f, //舞者
             3.2f / 3f, //Reaper
+            1f, //贤者
             2.64f / 3f, //Viper
             1f, //画家
         };
@@ -121,7 +122,8 @@ namespace DalamudACT
 
             // { 24283, 300 }, //Dosis
             // { 24306, 320 }, //Dosis2
-            { 24312, 360 } //Dosis3 330
+            { 24312, 360 }, //Dosis3 330
+            { 24315, 170 }, //Dyskrasia II
         };
 
         public static Dictionary<uint, float> SkillPot94 = new()
@@ -148,7 +150,8 @@ namespace DalamudACT
 
             // { 24283, 300 }, //Dosis
             // { 24306, 320 }, //Dosis2
-            { 24312, 330 } //Dosis3 330
+            { 24312, 330 }, //Dosis3 330
+            { 24315, 170 }, //Dyskrasia II
         };
 
         public static Dictionary<uint, uint> BuffToAction = new()
@@ -184,6 +187,7 @@ namespace DalamudACT
             //{ 2614, 40 }, //Eukrasian Dosis(低等级不准)
             //{ 2615, 60 }, //Eukrasian Dosis2
             { 2616, 75 }, //Eukrasian Dosis3
+            { 3897, 40 },//Eukrasian Dyskrasia
 
 
             //{ 118, 40 }, //樱花怒放
@@ -232,6 +236,7 @@ namespace DalamudACT
             //{ 2614, 40 }, //Eukrasian Dosis(低等级不准)
             //{ 2615, 60 }, //Eukrasian Dosis2
             { 2616, 75 }, //Eukrasian Dosis3
+            { 3897, 40 },//Eukrasian Dyskrasia
 
 
             //{ 118, 40 }, //樱花怒放

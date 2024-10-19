@@ -86,18 +86,18 @@ internal class PluginUI : IDisposable
             changed |= ImGui.DragInt("BackGround Alpha", ref config.BGColor, 1, 1, 1);
             changed |= ImGui.Checkbox("Show Delta", ref config.delta);
 
-            ImGui.Separator();
+            //ImGui.Separator();
 
-            changed |= ImGui.Checkbox("存储最近战斗数据", ref config.SaveData);
-            if (config.SaveData)
-            {
-                changed |= ImGui.InputInt("储存时长", ref config.SaveTime, 1);
-                if (config.SaveTime < 0) config.SaveTime = 0;
-                if (config.SaveTime > 120) config.SaveTime = 120;
-                changed |= ImGui.InputInt("计算时长", ref config.CalcTime, 1);
-                if (config.CalcTime < 0) config.CalcTime = 0;
-                if (config.CalcTime > config.SaveTime) config.CalcTime = config.SaveTime;
-            }
+            //changed |= ImGui.Checkbox("存储最近战斗数据", ref config.SaveData);
+            //if (config.SaveData)
+            //{
+            //    changed |= ImGui.InputInt("储存时长", ref config.SaveTime, 1);
+            //    if (config.SaveTime < 0) config.SaveTime = 0;
+            //    if (config.SaveTime > 120) config.SaveTime = 120;
+            //    changed |= ImGui.InputInt("计算时长", ref config.CalcTime, 1);
+            //    if (config.CalcTime < 0) config.CalcTime = 0;
+            //    if (config.CalcTime > config.SaveTime) config.CalcTime = config.SaveTime;
+            //}
 
             if (changed) config.Save();
 
@@ -314,7 +314,7 @@ internal class PluginUI : IDisposable
 
             dmgList = (from entry in dmgList orderby entry.Value descending select entry).ToDictionary(x => x.Key, x => x.Value);
 
-            ImGui.BeginTable("ACTMainWindow", 7, ImGuiTableFlags.Hideable | ImGuiTableFlags.Resizable);
+            ImGui.BeginTable("ACTMainWindow", 7, ImGuiTableFlags.Hideable | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY);
             {
                 ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableSetupColumn("###Icon",

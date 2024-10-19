@@ -129,6 +129,7 @@ public class ACTBattle
             7 => 1,
             8 => 1,
             3577 => 2.8f / casttime,
+            24315 => 1,
             _ => 1.5f / casttime
         };
         if (DataDic.ContainsKey(objectId) &&
