@@ -14,7 +14,7 @@ public class ACTBattle
 
 
     public static ExcelSheet<Action>? ActionSheet;
-    public static readonly Dictionary<uint, uint> Pet = new();
+    //public static readonly Dictionary<uint, uint> Pet = new();
     public readonly Dictionary<uint, long> LimitBreak = new();
 
     public long StartTime;
@@ -180,7 +180,7 @@ public class ACTBattle
             TotalDotDamage += damage;
             foreach (var dot in ActiveDots)
             {
-                if (dot.Source > 0x40000000) Pet.TryGetValue(dot.Source, out dot.Source);
+                if (dot.Source > 0x40000000) dot.Source = GetOwner(dot.Source);
                 if (dot.Source > 0x40000000) continue;
                 if (!DataDic.ContainsKey(dot.Source)) AddPlayer(dot.Source);
                 if (!DataDic.ContainsKey(dot.Source)) continue;
@@ -288,11 +288,12 @@ public class ACTBattle
         var npc = (IBattleNpc) target;
         foreach (var status in npc.StatusList)
         {
-            DalamudApi.Log.Verbose($"Check Dot on {id:X}:{status.StatusId}:{status.SourceId}");
+            DalamudApi.Log.Verbose($"Check Dot on {id:X}:{status.StatusId}:{status.SourceId}-{GetOwner(status.SourceId)}");
             if (DotPot().ContainsKey(status.StatusId))
             {
                 var source = status.SourceId;
-                if (status.SourceId > 0x40000000) Pet.TryGetValue(source, out source);
+                if (status.SourceId > 0x40000000) source = GetOwner(source);
+                if (source > 0x40000000) continue;
                 ActiveDots.Add(new Dot()
                     {BuffId = status.StatusId, Source = source});
             }
@@ -301,22 +302,24 @@ public class ACTBattle
         return true;
     }
 
-    public static void SearchForPet()
-    {
-        Pet.Clear();
-        foreach (var obj in DalamudApi.ObjectTable)
-        {
-            if (obj == null) continue;
-            if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
-            var owner = ((IBattleNpc) obj).OwnerId;
-            if (owner == 0xE0000000) continue;
-            if (Pet.ContainsKey(owner))
-                Pet[owner] = obj.EntityId;
-            else
-                Pet.Add(obj.EntityId, owner);
-            DalamudApi.Log.Verbose($"SearchForPet:{obj.EntityId:X}:{owner:X}");
-        }
-    }
+    //public static void SearchForPet()
+    //{
+    //    Pet.Clear();
+    //    foreach (var obj in DalamudApi.ObjectTable)
+    //    {
+    //        if (obj == null) continue;
+    //        if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
+    //        var owner = ((IBattleNpc) obj).OwnerId;
+    //        if (owner == 0xE0000000) continue;
+    //        if (Pet.ContainsKey(owner))
+    //            Pet[owner] = obj.EntityId;
+    //        else
+    //            Pet.Add(obj.EntityId, owner);
+    //        DalamudApi.Log.Verbose($"SearchForPet:{obj.EntityId:X}:{owner:X}");
+    //    }
+    //}
+
+    public static uint GetOwner(uint id) => DalamudApi.ObjectTable.SearchByEntityId(id)?.OwnerId ?? 0xE000_0000;
 
     private Dictionary<uint, uint> DotPot()
     {

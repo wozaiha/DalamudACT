@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Command;
 using Dalamud.Hooking;
-using Dalamud.Interface.Internal;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Plugin;
@@ -40,9 +37,9 @@ namespace DalamudACT
 
         private Hook<ActorControlSelfDelegate> ActorControlSelfHook;
 
-        private delegate nint NpcSpawnDelegate(uint sourceId, nint sourceCharacter);
+        //private delegate nint NpcSpawnDelegate(uint sourceId, nint sourceCharacter);
 
-        private Hook<NpcSpawnDelegate> NpcSpawnHook;
+        //private Hook<NpcSpawnDelegate> NpcSpawnHook;
 
         private delegate void CastDelegate(uint sourceId, nint sourceCharacter);
 
@@ -54,7 +51,10 @@ namespace DalamudACT
         private unsafe void Ability(nint headPtr, nint effectPtr, nint targetPtr, uint sourceId, int length)
         {
             DalamudApi.Log.Verbose($"-----------------------Ability{length}:{sourceId:X}------------------------------");
-            if (sourceId > 0x40000000) ACTBattle.Pet.TryGetValue(sourceId, out sourceId);
+            
+            if (sourceId > 0x40000000)
+                sourceId = ACTBattle.GetOwner(sourceId);
+            
             if (sourceId is > 0x40000000 or 0x0) return;
 
             var header = Marshal.PtrToStructure<Header>(headPtr);
@@ -114,7 +114,7 @@ namespace DalamudACT
 
             // actorid:death:id1:id2:?:?:?:?:E0000000:0
             if (entityId < 0x40000000) return;
-            if (arg2 > 0x40000000) ACTBattle.Pet.TryGetValue(arg2, out arg2);
+            if (arg2 > 0x40000000) arg2 = ACTBattle.GetOwner(arg2);
             if (arg2 > 0x40000000) return;
 
             if (type is ActorControlCategory.DoT)
@@ -154,7 +154,17 @@ namespace DalamudACT
 
             ReceiveAbilityHook.Original(sourceId, sourceCharacter, pos, effectHeader, effectArray, effectTrail);
         }
-        
+
+        //private nint ReceiveNpcSpawn(uint target, nint ptr)
+        //{
+        //    var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
+        //    var result = NpcSpawnHook.Original(target, ptr);
+        //    DalamudApi.Log.Verbose($"Spawn:{target:X}:{obj.spawnerId:X}");
+        //    if (obj.spawnerId == 0xE0000000) return result;
+        //    ACTBattle.Pet[target] = obj.spawnerId;
+        //    return result;
+        //}
+
         #endregion
 
         private void CheckTime()
@@ -172,7 +182,7 @@ namespace DalamudACT
                 }
 
                 Battles.Add(new ACTBattle(0, 0));
-                ACTBattle.SearchForPet();
+                //ACTBattle.SearchForPet();
             }
 
             if (DalamudApi.ClientState.LocalPlayer != null && inCombat)
@@ -225,11 +235,11 @@ namespace DalamudACT
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
 
-                var SpawnSig = "E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 44 0F B6 43 ?? ";
-                NpcSpawnHook = DalamudApi.Interop.HookFromAddress<NpcSpawnDelegate>(
-                    DalamudApi.SigScanner.ScanText(SpawnSig),
-                    ReceiveNpcSpawn);
-                NpcSpawnHook.Enable();
+                //var SpawnSig = "E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 0F B7 13";
+                //NpcSpawnHook = DalamudApi.Interop.HookFromAddress<NpcSpawnDelegate>(
+                //    DalamudApi.SigScanner.ScanText(SpawnSig),
+                //    ReceiveNpcSpawn);
+                //NpcSpawnHook.Enable();
 
                 CastHook = DalamudApi.Interop.HookFromAddress<CastDelegate>(
                     DalamudApi.SigScanner.ScanText("40 56 41 56 48 81 EC ?? ?? ?? ?? 48 8B F2 "), StartCast);
@@ -254,22 +264,12 @@ namespace DalamudACT
 
             //DalamudApi.Log.Warning($"-{DalamudApi.GameData.Excel.GetSheet<World>()!.GetRow(1081)!.IsPublic}");
         }
-
-        private nint ReceiveNpcSpawn(uint target, nint ptr)
-        {
-            var obj = Marshal.PtrToStructure<NpcSpawn>(ptr);
-            var result = NpcSpawnHook.Original(target, ptr);
-            DalamudApi.Log.Verbose($"Spawn:{target:X}:{obj.spawnerId:X}");
-            if (obj.spawnerId == 0xE0000000) return result;
-            ACTBattle.Pet[target] = obj.spawnerId;
-            return result;
-        }
-
+        
         public void Disable()
         {
             ActorControlSelfHook.Disable();
             ReceiveAbilityHook.Disable();
-            NpcSpawnHook.Disable();
+            //NpcSpawnHook.Disable();
             CastHook.Disable();
             //EffectHook.Disable();
         }
@@ -282,7 +282,7 @@ namespace DalamudACT
             Disable();
             ActorControlSelfHook.Dispose();
             ReceiveAbilityHook.Dispose();
-            NpcSpawnHook.Dispose();
+            //NpcSpawnHook.Dispose();
             CastHook.Dispose();
         }
 

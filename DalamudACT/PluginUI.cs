@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Interface.Internal;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
 using ImGuiNET;
@@ -12,7 +11,6 @@ using Lumina.Excel;
 using Action = Lumina.Excel.GeneratedSheets.Action;
 using Dalamud.Interface.Windowing;
 using DalamudACT.Struct;
-using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using Status = Lumina.Excel.GeneratedSheets.Status;
 
 namespace DalamudACT;
@@ -201,7 +199,7 @@ internal class PluginUI : IDisposable
 
         public MainWindow(ACT plugin) : base("ACT Main Window")
         {
-            Flags = ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar;
+            Flags = ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar;
         }
 
         public override void Draw()
@@ -214,7 +212,7 @@ internal class PluginUI : IDisposable
                 return;
             }
             if (_plugin.Battles.Count < 1) return;
-            Flags = ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar |
+            Flags = ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar |
                     (config.NoResize ? ImGuiWindowFlags.NoResize : ImGuiWindowFlags.None) |
                     (config.Lock ? ImGuiWindowFlags.NoMove : ImGuiWindowFlags.None);
             BgAlpha = config.BGColor / 100f;
