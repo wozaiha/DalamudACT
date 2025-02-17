@@ -10,8 +10,8 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using DalamudACT.Struct;
 using Lumina.Excel;
-using Lumina.Excel.GeneratedSheets;
-using Action = Lumina.Excel.GeneratedSheets.Action;
+using Lumina.Excel.Sheets;
+using Action = Lumina.Excel.Sheets.Action;
 using EventKind = DalamudACT.Struct.ACTBattle.EventKind;
 
 namespace DalamudACT
@@ -190,16 +190,37 @@ namespace DalamudACT
                 //开始战斗
                 if (Battles[^1].StartTime is 0) Battles[^1].StartTime = now;
                 Battles[^1].EndTime = now;
-                Battles[^1].Zone = !string.IsNullOrEmpty(terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)
-                    ?.ContentFinderCondition.Value?.Name!)
-                    ? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.ContentFinderCondition.Value?.Name!
-                    : terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceName.Value?.Name
-                      ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceNameRegion.Value?.Name
-                      ?? terrySheet.GetRow(DalamudApi.ClientState.TerritoryType)?.PlaceNameZone.Value?.Name
-                      ?? "Unknown";
+                Battles[^1].Zone = GetPlaceName();
+
 
                 PluginUI.choosed = Battles.Count - 1;
             }
+        }
+
+        private string GetPlaceName()
+        {
+            var result = "Unknown";
+            var excel = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType);
+            if (excel.ContentFinderCondition.ValueNullable.HasValue)
+            {
+                return excel.ContentFinderCondition.Value.Name.ExtractText();
+            }
+            else
+            {
+                if (excel.PlaceName.ValueNullable.HasValue)
+                {
+                    return excel.PlaceName.Value.Name.ExtractText();
+                }
+                else if (excel.PlaceNameRegion.ValueNullable.HasValue)
+                {
+                    return excel.PlaceNameRegion.Value.Name.ExtractText();
+                }
+                else if (excel.PlaceNameZone.ValueNullable.HasValue)
+                {
+                    return excel.PlaceNameZone.Value.Name.ExtractText();
+                }
+            }
+            return result;
         }
 
         private void Update(IFramework framework)

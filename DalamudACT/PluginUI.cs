@@ -8,10 +8,10 @@ using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
 using ImGuiNET;
 using Lumina.Excel;
-using Action = Lumina.Excel.GeneratedSheets.Action;
+using Action = Lumina.Excel.Sheets.Action;
 using Dalamud.Interface.Windowing;
 using DalamudACT.Struct;
-using Status = Lumina.Excel.GeneratedSheets.Status;
+using Status = Lumina.Excel.Sheets.Status;
 
 namespace DalamudACT;
 
@@ -611,14 +611,14 @@ internal class PluginUI : IDisposable
             damage.Sort((pair1, pair2) => pair2.Value.Damage.CompareTo(pair1.Value.Damage));
             foreach (var (action, dmg) in damage)
             {
-                if (action == 0 || sheet.GetRow(action) == null) continue;
+                if (action == 0 || !sheet.TryGetRow(action,out _)) continue;
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 if (Icon.TryGetValue(action, out var icon))
                     ImGui.Image(icon!.ImGuiHandle,
                         new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
                 ImGui.TableNextColumn();
-                ImGui.Text(sheet.GetRow(action)!.Name);
+                ImGui.Text(sheet.GetRow(action).Name.ExtractText());
                 ImGui.TableNextColumn();
                 ImGui.Text(((float)dmg.D / dmg.swings).ToString("P1") + "%");
                 ImGui.TableNextColumn();
@@ -650,7 +650,7 @@ internal class PluginUI : IDisposable
                     ImGui.Image(BuffIcon[buff]!.ImGuiHandle,
                         new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight() * 1.2f));
                     ImGui.TableNextColumn();
-                    ImGui.Text(buffSheet.GetRow(buff)!.Name);
+                    ImGui.Text(buffSheet.GetRow(buff).Name.ExtractText());
                     ImGui.TableNextColumn();
                     ImGui.TableNextColumn();
                     ImGui.TableNextColumn();
@@ -665,7 +665,7 @@ internal class PluginUI : IDisposable
             ImGui.EndTable();
             if (battle.DataDic[actor].MaxDamageSkill != 0)
             {
-                ImGui.Text($"最大伤害 : {sheet.GetRow(battle.DataDic[actor].MaxDamageSkill)?.Name} - {battle.DataDic[actor].MaxDamage:N0}");
+                ImGui.Text($"最大伤害 : {sheet.GetRow(battle.DataDic[actor].MaxDamageSkill).Name.ExtractText()} - {battle.DataDic[actor].MaxDamage:N0}");
             }
             ImGui.EndTooltip();
         }
@@ -691,7 +691,7 @@ internal class PluginUI : IDisposable
                     ImGui.Image(icon!.ImGuiHandle,
                         new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
                 ImGui.TableNextColumn();
-                ImGui.Text(sheet.GetRow(action)!.Name);
+                ImGui.Text(sheet.GetRow(action).Name.ExtractText());
                 ImGui.TableNextColumn();
                 var temp = (float)dmg / _plugin.Battles[choosed].Duration();
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetColumnWidth() -

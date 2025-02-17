@@ -4,7 +4,7 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Textures;
 using Lumina.Excel;
-using Action = Lumina.Excel.GeneratedSheets.Action;
+using Action = Lumina.Excel.Sheets.Action;
 
 namespace DalamudACT.Struct;
 
@@ -115,7 +115,7 @@ public class ACTBattle
         DataDic.Add(objectId, new Data());
         DataDic[objectId].Damages = new Dictionary<uint, SkillDamage> {{0, new SkillDamage()}};
 
-        DataDic[objectId].JobId = ((ICharacter) actor).ClassJob.Id;
+        DataDic[objectId].JobId = ((ICharacter) actor).ClassJob.RowId;
         DataDic[objectId].PotSkill = Potency.BaseSkill[DataDic[objectId].JobId];
         DataDic[objectId].SkillPotency = 0;
         DataDic[objectId].Speed = 1f;
@@ -199,7 +199,7 @@ public class ACTBattle
         if (from != 0xE0000000 && eventKind == EventKind.Damage)
         {
 
-            if (ActionSheet!.GetRow(id)?.PrimaryCostType == 11) //LimitBreak
+            if (ActionSheet!.GetRow(id).PrimaryCostType == 11) //LimitBreak
             {
                 if (LimitBreak.ContainsKey(id)) LimitBreak[id] += damage;
                 else LimitBreak.Add(id,damage);

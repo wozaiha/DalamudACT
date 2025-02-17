@@ -15,6 +15,7 @@ namespace DalamudACT
         public bool Mini;
         public int BGColor = 100;
         public bool delta = false;
+        public bool autohide = false;
 
         public bool SaveData = false;
         public int SaveTime = 30;
