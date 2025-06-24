@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Command;
 using Dalamud.Hooking;
 using Dalamud.Interface.Textures;
@@ -169,7 +169,7 @@ namespace DalamudACT
 
         private void CheckTime()
         {
-            var inCombat = (DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) != 0;
+            var inCombat = DalamudApi.Conditions.Any(ConditionFlag.InCombat);
             var now = DateTimeOffset.Now.ToUnixTimeSeconds();
             if (Battles[^1].EndTime > 0 && !inCombat)
             {
@@ -247,13 +247,13 @@ namespace DalamudACT
             #region Hook
             {
                 ReceiveAbilityHook = DalamudApi.Interop.HookFromAddress<ReceiveAbilityDelegate>(
-                    DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B 4C 24 ?? 48 33 CC E8 ?? ?? ?? ?? 48 8B 9C 24 ?? ?? ?? ?? 48 83 C4 60 5F C3 CC CC CC CC CC CC CC CC CC 48 89 5C 24 ?? 48 89 74 24 ??"),
+                    DalamudApi.SigScanner.ScanText("40 55 53 56 41 54 41 55 41 56 41 57 48 8D AC 24 ?? ?? ?? ?? 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 70"),
                     ReceiveAbilityEffect);
                 ReceiveAbilityHook.Enable();
                 //48 89 5C 24 ? 57 48 83 EC 60 48 8B 05 ? ? ? ? 48 33 C4 48 89 44 24 ? 48 8B DA 最后函数
 
                 ActorControlSelfHook = DalamudApi.Interop.HookFromAddress<ActorControlSelfDelegate>(
-                    DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64"), ReceiveActorControlSelf);
+                    DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64 "), ReceiveActorControlSelf);
                 ActorControlSelfHook.Enable();
 
                 //var SpawnSig = "E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 8B 4F 08 48 8B D3 E8 ?? ?? ?? ?? B0 01 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 50 5F C3 0F B7 13";

@@ -35,7 +35,7 @@ public class ACTBattle
     {
         StartTime = time1;
         EndTime = time2;
-        Level = DalamudApi.ClientState.LocalPlayer?.Level;
+        Level = DalamudApi.RunOnFrameworkThread(() => DalamudApi.ClientState.LocalPlayer?.Level).Result;
     }
 
     public class Dot

@@ -1,4 +1,8 @@
-﻿using Dalamud.Game;
+﻿using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using Dalamud.Game;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -30,4 +34,20 @@ public class DalamudApi
     [PluginService] public static IPluginLog Log { get; private set; } = null!;
     [PluginService] public static IPartyList PartyList { get; private set; } = null!;
     // @formatter:on
+
+    public static async Task<T> RunOnFrameworkThread<T>(Func<T> func, [CallerMemberName] string callerMember = "", [CallerFilePath] string callerFilePath = "", [CallerLineNumber] int callerLineNumber = 0)
+    {
+        var fileName = Path.GetFileNameWithoutExtension(callerFilePath);
+        if (!Framework.IsInFrameworkUpdateThread)
+        {
+            var result = await Framework.RunOnFrameworkThread(func).ContinueWith((task) => task.Result).ConfigureAwait(false);
+            while (Framework.IsInFrameworkUpdateThread) // yield the thread again, should technically never be triggered
+            {
+                await Task.Delay(1).ConfigureAwait(false);
+            }
+            return result;
+        }
+
+        return func.Invoke();
+    }
 }
