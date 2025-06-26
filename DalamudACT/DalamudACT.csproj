@@ -2,7 +2,7 @@
 <Project Sdk="Dalamud.NET.Sdk/12.0.0">
 
   <PropertyGroup>
-    <AssemblyVersion>0.12.0.0</AssemblyVersion>
+    <AssemblyVersion>0.12.0.1</AssemblyVersion>
     <InternalName>DalamudACT</InternalName>
     <Description>Dalamud Damage Display plugin.</Description>
     <Copyright>wozaiha</Copyright>

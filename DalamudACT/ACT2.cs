@@ -201,21 +201,21 @@ namespace DalamudACT
         {
             var result = "Unknown";
             var excel = terrySheet.GetRow(DalamudApi.ClientState.TerritoryType);
-            if (excel.ContentFinderCondition.ValueNullable.HasValue)
+            if (!excel.ContentFinderCondition.Value.Name.IsEmpty)
             {
                 return excel.ContentFinderCondition.Value.Name.ExtractText();
             }
             else
             {
-                if (excel.PlaceName.ValueNullable.HasValue)
+                if (!excel.PlaceName.Value.Name.IsEmpty)
                 {
                     return excel.PlaceName.Value.Name.ExtractText();
                 }
-                else if (excel.PlaceNameRegion.ValueNullable.HasValue)
+                else if (!excel.PlaceNameRegion.Value.Name.IsEmpty)
                 {
                     return excel.PlaceNameRegion.Value.Name.ExtractText();
                 }
-                else if (excel.PlaceNameZone.ValueNullable.HasValue)
+                else if (!excel.PlaceNameZone.Value.Name.IsEmpty)
                 {
                     return excel.PlaceNameZone.Value.Name.ExtractText();
                 }
