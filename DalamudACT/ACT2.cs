@@ -33,7 +33,7 @@ namespace DalamudACT
         private Hook<ReceiveAbilityDelegate> ReceiveAbilityHook;
 
         private delegate void ActorControlSelfDelegate(uint entityId, ActorControlCategory id, uint arg0, uint arg1,
-            uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10);
+            uint arg2, uint arg3, uint arg4, uint arg5, uint arg6, uint arg7, uint arg8, ulong targetId, byte a10);
 
         private Hook<ActorControlSelfDelegate> ActorControlSelfHook;
 
@@ -101,10 +101,10 @@ namespace DalamudACT
 
         private void ReceiveActorControlSelf(uint entityId, ActorControlCategory type, uint arg0, uint arg1, uint arg2,
             uint arg3,
-            uint arg4, uint arg5, ulong targetId, byte a10)
+            uint arg4, uint arg5, uint arg6, uint arg7, uint arg8, ulong targetId, byte a10)
         {
             //DalamudApi.Log.Verbose($"ReceiveActorControlSelf{entityId:X}:{type}:0={arg0}:1={arg1}:2={arg2}:3={arg3}:4={arg4}:5={arg5}:{targetId:X}:{a10}");
-            ActorControlSelfHook.Original(entityId, type, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
+            ActorControlSelfHook.Original(entityId, type, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, targetId, a10);
             if (type == ActorControlCategory.Death && entityId < 0x40000000)
             {
                 Battles[^1].AddEvent(EventKind.Death, entityId, arg0, 0, 0);
