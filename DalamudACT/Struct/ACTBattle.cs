@@ -35,7 +35,7 @@ public class ACTBattle
     {
         StartTime = time1;
         EndTime = time2;
-        Level = DalamudApi.RunOnFrameworkThread(() => DalamudApi.ClientState.LocalPlayer?.Level).Result;
+        Level = DalamudApi.PlayerState.EffectiveLevel;
     }
 
     public class Dot
@@ -145,7 +145,7 @@ public class ACTBattle
 
     public void AddEvent(EventKind eventKind, uint from, uint target, uint id, long damage, byte dc = 0)
     {
-        if ((DalamudApi.ClientState.LocalPlayer?.StatusFlags & StatusFlags.InCombat) == 0) return;
+        if ((DalamudApi.ObjectTable.LocalPlayer?.StatusFlags & StatusFlags.InCombat) == 0) return;
 
         if (from > 0x40000000 && from != 0xE0000000 || from == 0x0)
         {
@@ -227,7 +227,7 @@ public class ACTBattle
                 {
                     DataDic[from].Damages.Add(id, new SkillDamage(damage));
                     PluginUI.Icon.TryAdd(id,
-                        DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(ActionSheet!.GetRow(id)!.Icon)).RentAsync().Result);
+                        DalamudApi.TextureProvider.GetFromGameIcon(new GameIconLookup(ActionSheet!.GetRow(id)!.Icon)).RentAsync().Result);
                 }
 
                 if (DataDic[from].MaxDamage < damage)

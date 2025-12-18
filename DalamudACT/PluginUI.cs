@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
-using ImGuiNET;
 using Lumina.Excel;
 using Action = Lumina.Excel.Sheets.Action;
 using Dalamud.Interface.Windowing;
 using DalamudACT.Struct;
+using Lumina.Excel.Sheets;
 using Status = Lumina.Excel.Sheets.Status;
 
 namespace DalamudACT;
@@ -39,9 +41,9 @@ internal class PluginUI : IDisposable
         config = p.Configuration;
 
         mainIcon = File.Exists(DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName + "\\DDD.png")
-            ? DalamudApi.Textures.GetFromFile(
+            ? DalamudApi.TextureProvider.GetFromFile(
                 DalamudApi.PluginInterface.AssemblyLocation.Directory?.FullName + "\\DDD.png").RentAsync().Result
-            : DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(62142)).RentAsync().Result;
+            : DalamudApi.TextureProvider.GetFromGameIcon(new GameIconLookup(62142)).RentAsync().Result;
 
         configWindow = new ConfigWindow(_plugin);
         debugWindow = new DebugWindow(_plugin);
@@ -98,6 +100,15 @@ internal class PluginUI : IDisposable
             //}
 
             if (changed) config.Save();
+            unsafe
+            {
+                var ptr = *(nint*)((nint)FFXIVClientStructs.FFXIV.Client.System.Framework.GameWindow.Instance() + 0xA8);
+                ImGui.Text(ptr.ToString());
+                ImGui.Text(Marshal.PtrToStringUTF8(ptr));
+            }
+
+            ImGui.Text(DalamudApi.ClientState.TerritoryType.ToString());
+            ImGui.Text(DalamudApi.GameData.GetExcelSheet<ContentMemberType>().Count.ToString());
 
         }
 
@@ -246,7 +257,7 @@ internal class PluginUI : IDisposable
 
                     ImGui.SetNextItemWidth(250);
                     ImGui.Combo("##battles", ref choosed, items, _plugin.Battles.Count);
-                    if (DalamudApi.ClientState.LocalPlayer != null &&
+                    if (DalamudApi.ObjectTable.LocalPlayer != null &&
                         DalamudApi.Conditions[ConditionFlag.InCombat] &&
                         _plugin.Battles[^1].StartTime != 0)
                         _plugin.Battles[^1].EndTime = DateTimeOffset.Now.ToUnixTimeSeconds();
@@ -262,7 +273,6 @@ internal class PluginUI : IDisposable
                     DrawData(battle);
                 //else DrawDataWithCalc(battle);
             }
-
         }
 
 
@@ -333,7 +343,7 @@ internal class PluginUI : IDisposable
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     if (_plugin.Icon.TryGetValue(battle.DataDic[actor].JobId, out var icon))
-                        ImGui.Image(icon!.ImGuiHandle,
+                        ImGui.Image(icon!.Handle,
                             new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
 
                     ImGui.TableNextColumn();
@@ -389,7 +399,7 @@ internal class PluginUI : IDisposable
                     ImGui.TableNextRow(); //LimitBreak
                     ImGui.TableNextColumn();
                     if (_plugin.Icon.TryGetValue(99, out var icon))
-                        ImGui.Image(icon!.ImGuiHandle,
+                        ImGui.Image(icon!.Handle,
                             new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
                     ImGui.TableNextColumn();
                     ImGui.Text("极限技");
@@ -474,7 +484,7 @@ internal class PluginUI : IDisposable
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
                     if (_plugin.Icon.TryGetValue(battle.DataDic[actor].JobId, out var icon))
-                        ImGui.Image(icon!.ImGuiHandle,
+                        ImGui.Image(icon!.Handle,
                             new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
 
                     ImGui.TableNextColumn();
@@ -541,7 +551,7 @@ internal class PluginUI : IDisposable
                     ImGui.TableNextRow(); //LimitBreak
                     ImGui.TableNextColumn();
                     if (_plugin.Icon.TryGetValue(99, out var icon))
-                        ImGui.Image(icon!.ImGuiHandle,
+                        ImGui.Image(icon!.Handle,
                             new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
                     ImGui.TableNextColumn();
                     ImGui.Text("极限技");
@@ -615,7 +625,7 @@ internal class PluginUI : IDisposable
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 if (Icon.TryGetValue(action, out var icon))
-                    ImGui.Image(icon!.ImGuiHandle,
+                    ImGui.Image(icon!.Handle,
                         new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
                 ImGui.TableNextColumn();
                 ImGui.Text(sheet.GetRow(action).Name.ExtractText());
@@ -643,11 +653,11 @@ internal class PluginUI : IDisposable
                     var source = (uint)(active & 0xFFFFFFFF);
                     if (!BuffIcon.ContainsKey(buff))
                         BuffIcon.TryAdd(buff,
-                            DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(buffSheet.GetRow(buff)!.Icon)).RentAsync().Result);
+                            DalamudApi.TextureProvider.GetFromGameIcon(new GameIconLookup(buffSheet.GetRow(buff)!.Icon)).RentAsync().Result);
 
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-                    ImGui.Image(BuffIcon[buff]!.ImGuiHandle,
+                    ImGui.Image(BuffIcon[buff]!.Handle,
                         new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight() * 1.2f));
                     ImGui.TableNextColumn();
                     ImGui.Text(buffSheet.GetRow(buff).Name.ExtractText());
@@ -688,7 +698,7 @@ internal class PluginUI : IDisposable
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 if (_plugin.Icon.TryGetValue(99, out var icon))
-                    ImGui.Image(icon!.ImGuiHandle,
+                    ImGui.Image(icon!.Handle,
                         new Vector2(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()));
                 ImGui.TableNextColumn();
                 ImGui.Text(sheet.GetRow(action).Name.ExtractText());
@@ -711,7 +721,7 @@ internal class PluginUI : IDisposable
                         (config.NoResize ? ImGuiWindowFlags.NoResize : ImGuiWindowFlags.None) |
                         (config.Lock ? ImGuiWindowFlags.NoMove : ImGuiWindowFlags.None);
                 
-                if (ImGui.ImageButton(mainIcon.ImGuiHandle, new Vector2(40f)))
+                if (ImGui.ImageButton(mainIcon.Handle, new Vector2(40f)))
                 {
                     Flags ^= ImGuiWindowFlags.AlwaysAutoResize;
                     config.Mini = !config.Mini;

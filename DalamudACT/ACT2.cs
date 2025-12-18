@@ -185,7 +185,7 @@ namespace DalamudACT
                 //ACTBattle.SearchForPet();
             }
 
-            if (DalamudApi.ClientState.LocalPlayer != null && inCombat)
+            if (DalamudApi.ObjectTable.LocalPlayer != null && inCombat)
             {
                 //开始战斗
                 if (Battles[^1].StartTime is 0) Battles[^1].StartTime = now;
@@ -235,9 +235,9 @@ namespace DalamudACT
             terrySheet = DalamudApi.GameData.GetExcelSheet<TerritoryType>()!;
             ACTBattle.ActionSheet = DalamudApi.GameData.GetExcelSheet<Action>()!;
 
-            for (uint i = 62100; i <= 62100 + 42; i++) Icon.Add(i - 62100, DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(i)).RentAsync().Result);
+            for (uint i = 62100; i <= 62100 + 42; i++) Icon.Add(i - 62100, DalamudApi.TextureProvider.GetFromGameIcon(new GameIconLookup(i)).RentAsync().Result);
 
-            Icon.Add(99, DalamudApi.Textures.GetFromGameIcon(new GameIconLookup(103)).RentAsync().Result); //LB
+            Icon.Add(99, DalamudApi.TextureProvider.GetFromGameIcon(new GameIconLookup(103)).RentAsync().Result); //LB
 
             Battles.Add(new ACTBattle(0, 0));
 
@@ -247,10 +247,10 @@ namespace DalamudACT
             #region Hook
             {
                 ReceiveAbilityHook = DalamudApi.Interop.HookFromAddress<ReceiveAbilityDelegate>(
-                    DalamudApi.SigScanner.ScanText("40 55 53 56 41 54 41 55 41 56 41 57 48 8D AC 24 ?? ?? ?? ?? 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 70"),
+                    DalamudApi.SigScanner.ScanText("40 55 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 ?? ?? ?? ??"),
                     ReceiveAbilityEffect);
                 ReceiveAbilityHook.Enable();
-                //48 89 5C 24 ? 57 48 83 EC 60 48 8B 05 ? ? ? ? 48 33 C4 48 89 44 24 ? 48 8B DA 最后函数
+                //40 55 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 85 ? ? ? ? 41 0F B7 80 ? ? ? ?  最后函数
 
                 ActorControlSelfHook = DalamudApi.Interop.HookFromAddress<ActorControlSelfDelegate>(
                     DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64 "), ReceiveActorControlSelf);
@@ -263,7 +263,7 @@ namespace DalamudACT
                 //NpcSpawnHook.Enable();
 
                 CastHook = DalamudApi.Interop.HookFromAddress<CastDelegate>(
-                    DalamudApi.SigScanner.ScanText("40 56 41 56 48 81 EC ?? ?? ?? ?? 48 8B F2 "), StartCast);
+                    DalamudApi.SigScanner.ScanText("40 53 57 48 81 EC ?? ?? ?? ?? 48 8B FA 8B D1"), StartCast);
                 CastHook.Enable();
                 //E8 ? ? ? ? 84 C0 75 12 0F 57 C0 第一个
             }
